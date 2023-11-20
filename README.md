@@ -18,12 +18,6 @@ Once observations are assigned treatment under the OTR, we can measure the risk 
 
 ## Usage:
 
-### `estimate_EYd.R`
-
-The `estimate_EYd.R` script contains functions necessary to estimate the expected outcome for participants in the ABCD study. The main function you'll be working with is `estimate_EYd`.
-
-**Usage**:
-
 Example with simulation data, pre-fit nuisance
 
 ```R
