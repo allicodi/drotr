@@ -1,0 +1,86 @@
+#' Main function to calculate estimated treatment effects for treatment rule
+#'
+#' Primary function to estimate treatment effects for a given treatment rule.
+#' Can fit nuisance models internally or be provided with pre-fit nuisance models for the given dataset.
+#'
+#' @param df dataframe containing full dataset
+#' @param Y_name name of outcome variable in df
+#' @param A_name name of treatment variable in df
+#' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)
+#' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
+#' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
+#' @param k_fold_assign_and_CATE dataframe containing pids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)
+#' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
+#' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
+#' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
+#' @param threshold decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome
+#' @param k_folds integer number of folds to use for cross-validation (must specify if fitting outcome, treatment, and missingness models. Otherwise uses k from `k_fold_assign_and_CATE`)
+#' @param ps_trunc_level numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)
+#' @param outcome_type outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)
+#'
+#' @export
+#'
+#' @returns
+#' \describe{
+#'  \item{\code{overall_results}}{dataframe of overall results aggregated across `k` folds}
+#'  \item{\code{EY_A1_d1}}{dataframe of AIPTW for optimally treated in each fold}
+#'  \item{\code{EY_A0_d1}}{dataframe of AIPTW for not treating those who should be treated under decision rule in each fold}
+#'  \item{\code{treatment_effect}}{dataframe of treatment effect in each fold}
+#'  \item{\code{decision_df}}{original dataset with decision made for each observation}
+#'  \item{\code{CATE_models}}{CATE model used in each fold}
+#'  }
+estimate_OTR <- function(df,
+                         Y_name,
+                         A_name,
+                         Z_list,
+                         sl.library.CATE,
+                         nuisance_models = NULL,
+                         k_fold_assign_and_CATE = NULL,
+                         sl.library.outcome = NULL,
+                         sl.library.treatment = NULL,
+                         sl.library.missingness = NULL,
+                         threshold = 0.05,
+                         k_folds = 2,
+                         ps_trunc_level = 0.01,
+                         outcome_type = "gaussian"){
+
+  # --------------------------------------------------------------------------
+  # 1 - Fit nuisance models (if not provided)
+  # --------------------------------------------------------------------------
+
+  # Check that both models and fold assignments are provided, if one provided, exit
+  if ((is.null(nuisance_models) & !is.null(k_fold_assign_and_CATE)) | (!is.null(nuisance_models) & is.null(k_fold_assign_and_CATE))){
+    return(print("Must provide both nuisance models and fold assignments to use for estimation."))
+  }
+  else if (is.null(nuisance_models) & is.null(k_fold_assign_and_CATE)) { # If neither provided, estimate models & assign folds
+
+    # Verify all necessary SuperLearner libraries were input
+    if(is.null(sl.library.outcome) | is.null(sl.library.treatment) | is.null(sl.library.missingness)){
+      return(print("Must provide outcome, treatment, and missingness libraries to estimate nuisance models."))
+    }
+
+    nuisance_output <- drotr::learn_nuisance(df, Y_name, A_name, sl.library.outcome, sl.library.treatment,
+                                      sl.library.missingness, outcome_type, k_folds, ps_trunc_level)
+
+    nuisance_models <- nuisance_output[[1]]
+    k_fold_assign_and_CATE <- nuisance_output[[2]]
+
+  }
+
+  # --------------------------------------------------------------------------
+  # 2 - Learn CATE models
+  # --------------------------------------------------------------------------
+  CATE_models <- drotr::learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE)
+
+  # --------------------------------------------------------------------------
+  # 3 - Make treatment decisions and compute treatment effects
+  # --------------------------------------------------------------------------
+  results <- drotr::compute_estimates(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE,
+                                nuisance_models, CATE_models,
+                                threshold, ps_trunc_level)
+
+  results$CATE_models <- CATE_models
+
+  return(results)
+
+}

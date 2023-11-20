@@ -1,0 +1,19 @@
+Package: drotr
+Type: Package
+Title: Doubly-robust methods for Optimal Treatment Rules
+Version: 0.1.0
+Author: Allison Codi
+Maintainer: Allison Codi <allison.codi@emory.edu>
+Description: This package estimates Optimal Treatment Rules (OTRs) and treatment effects under those optimally treated by the rule using doubly-robust methods. 
+    The OTR assigns treatment to all individuals with a conditional average treatment effect (CATE) that exceeds a given threshold.
+    The CATE is estimated using a Doubly-Robust (DR) Learner. Once the OTR is created, the package estimates treatment effects in the optimally treated. 
+    Treatment effects are estimated using Augmented Inverse Probability of Treatment Weight (AIPTW) estimators.
+License: MIT
+Encoding: UTF-8
+Depends: R (>= 3.0.0)
+Imports: SuperLearner, stats, dplyr
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 7.2.3
