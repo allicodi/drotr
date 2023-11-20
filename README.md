@@ -1,15 +1,22 @@
 
 # `drotr`
 
- MODIFY FOR NEW REPO/PACKAGE
+`drotr` is a package that uses doubly-robust methods to estimate optimal treatment rules (OTRs).
+
+We define OTRs through the use of conditional average treatment effects (CATEs). The CATE can be interpreted as the expected difference in outcome under treatment vs placebo. A doubly-robust learner is used to estimate the CATE. All individuals with CATE estimates that exceed a specified threshold `t` are treated under the OTR. In other words, we only treat individuals if the treatment reduces their probability of the adverse outcome by more than `t`. 
+
+Once observations are assigned treatment under the OTR, we can measure the risk of outcome in the optimally treated and the average treatment effects among the optimally treated. We estimate these using the Augmented Inverse Probability of Treatment Weight (AIPTW) estimators.
+
 ## Scripts:
-**1. estimate_EYd.R** - This is the primary R script for testing treatment rules in the ABCD study.
+**1. estimate_OTR.R** - This is the primary R script for finding optimal treatment rules and estimating outcomes among the optimally treated. 
 
-**2. simulation_EYd.R** - This script is used to run simulations during testing.
+**2. learn_nuisance.R** - This script is used to fit outcome, treatment, and missingness models for a given dataset. It also estimates $\hat{CATE}$ for observations in a dataset. The script can be run prior to `estimate_OTR` to pre-fit nuisance models for `estimate_OTR`, or nuisance models can be fit within `estimate_OTR`
 
-**3. generate_sim_data.R** - This script is used to generate simulated data. These simulated datasets were used during testing.
+**3. learn_CATE.R** - This script is used to fit a model for the CATE given a subset of covariates `Z` in the dataset
 
-## How to use:
+**4. compute_estimates.R ** -  This script is used to generate AIPTW estimators for expected outcome among the optimally treated and expected treatment effect under the optimally treated. 
+
+## Usage:
 
 ### `estimate_EYd.R`
 
@@ -17,10 +24,10 @@ The `estimate_EYd.R` script contains functions necessary to estimate the expecte
 
 **Usage**:
 
-Example with simulation data
+Example with simulation data, pre-fit nuisance
 
 ```R
-  # Example usage of estimate_EYd function
+  # Example usage of `drotr` package
   # Using simulation data
   
   #
@@ -49,62 +56,33 @@ Example with simulation data
   sl.library <- c("SL.mean", "SL.glm", "SL.glm.interaction") #using same libraries for each step
   decision_threshold <- 0
   
-  output_est <- estimate_EYd(df = df,
-                             Y_name = "Y",
-                             A_name = "A",
-                             Z_list = Z_list, 
-                             sl.library.outcome = sl.library, 
-                             sl.library.treatment = sl.library, 
-                             sl.library.missingness = sl.library,
-                             sl.library.CATE = sl.library, 
-                             threshold = decision_threshold,
-                             k_folds = 2,
-                             outcome_type = "gaussian", 
-                             pwd = "~/Documents/Research/abcd_cate")
+  nuisance_output <- learn_nuisance(df = df,
+                                    Y_name = "Y",
+                                    A_name = "A",
+                                    sl.library.outcome = sl.library,
+                                    sl.library.treatment = sl.library,
+                                    sl.library.missingness = sl.library,
+                                    outcome_type = "gaussian",
+                                    k_folds = 2,
+                                    ps_trunc_level = 0.01)
   
-    overall_results <- output_est[[1]]                  # Overall results dataframe
-    results_by_fold_aiptw_1 <- output_est[[2]]          # Results for each of k folds AIPTW, a = 1 
-    results_by_fold_aiptw_0 <- output_est[[3]]          # Results for each of k folds AIPTW, a = 0
-    results_by_fold_treatment_effect <- output_est[[4]] # Results for each of k folds treatment effect
-    cate_models_each_fold <- output_est[[5]]            # CATE model used in each fold
-    decision_each_participant <- output_est[[6]]        # Simulation data with decision made for each participant
-    
-    prop_treated <- mean(decision_each_participant$decision) #Proportion treated by rule
+  nuisance_models <- nuisance_output[[1]]
+  k_fold_assign_and_CATE <- nuisance_output[[2]]
+  
+  results <- estimate_OTR(df = df,
+                          Y_name = "Y",
+                          A_name = "A",
+                          Z_list = Z_list,
+                          sl.library.CATE = sl.library,
+                          nuisance_models = nuisance_models,
+                          k_fold_assign_and_CATE = k_fold_assign_and_CATE,
+                          sl.library.outcome = sl.library,
+                          sl.library.treatment = sl.library,
+                          sl.library.missingness = sl.library,
+                          threshold = 0,
+                          k_folds = 2,
+                          ps_trunc_level = 0.01,
+                          outcome_type = "gaussian")
+
 
    ```
-   
-   Example with ABCD Data
-   
-   ```R
-   # Example usage of estimate_EYd function
-   # Treatment rule: Single pathogen quantity (shigella)
-   
-   # Libraries to try in each step
-   sl.library.outcome <- c("SL.glm", "SL.ranger", "SL.lasso", "SL.earth", "SL.ManuallyDefinedLogRegression")
-   sl.library.treatment <- c("SL.mean", "SL.ManuallyDefinedModels")
-   sl.library.missingness <- c("SL.mean", "SL.ManuallyDefinedModels")
-   sl.library.CATE <- c("SL.ManuallyDefinedModels")
-   
-   output_est <- estimate_EYd(Y_name = "day3diar",
-                              A_name = "an_grp_01",
-                              Z_list = "shigella_new", 
-                              sl.library.outcome = sl.library.outcome, 
-                              sl.library.treatment = sl.library.treatment, 
-                              sl.library.missingness = sl.library.missingness,
-                              sl.library.CATE = sl.library.CATE, 
-                              threshold = 0.05,
-                              k_folds = 2,
-                              outcome_type = "binomial", 
-                              pwd = "~/Documents/Research/abcd_cate")
-                             
-    overall_results <- output_est[[1]]                  # Overall results dataframe
-    results_by_fold_aiptw_1 <- output_est[[2]]          # Results for each of k folds AIPTW, a = 1 
-    results_by_fold_aiptw_0 <- output_est[[3]]          # Results for each of k folds AIPTW, a = 0
-    results_by_fold_treatment_effect <- output_est[[4]] # Results for each of k folds treatment effect
-    cate_models_each_fold <- output_est[[5]]            # CATE model used in each fold
-    decision_each_participant <- output_est[[6]]        # Simulation data with decision made for each participant
-    
-    prop_treated <- mean(decision_each_participant$decision) #Proportion treated by rule
-    
-   ```
-   

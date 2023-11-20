@@ -11,9 +11,13 @@ Description: This package estimates Optimal Treatment Rules (OTRs) and treatment
 License: MIT
 Encoding: UTF-8
 Depends: R (>= 3.0.0)
-Imports: SuperLearner, stats, dplyr
+Imports: 
+    SuperLearner, 
+    dplyr,
+    stats
 Suggests: 
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+URL: https://github.com/allicodi/drotr
 RoxygenNote: 7.2.3

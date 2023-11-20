@@ -5,10 +5,18 @@
 #' @param k_fold_assign_and_CATE dataframe containing pids, fold assignments, and CATE estimate for each observation in df
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
 #'
+#' @importFrom dplyr left_join
+#' @import SuperLearner
+#' @import stats
 #' @export
 #'
 #' @returns SuperLearner model (discrete) for CATE
 learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
+
+  # if pid not in df, make pid index
+  if (!"pid" %in% colnames(df)) {
+    df$pid <- as.numeric(rownames(df))
+  }
 
   k_folds <- max(k_fold_assign_and_CATE$k)
   k_fold_CATE_models <- vector(mode = "list", length = k_folds)

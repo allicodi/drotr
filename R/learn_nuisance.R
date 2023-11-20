@@ -10,6 +10,8 @@
 #' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
 #' @param outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y
 #'
+#' @import stats
+#' @import SuperLearner
 #' @export
 #'
 #' @return

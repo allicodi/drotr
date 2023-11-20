@@ -10,6 +10,8 @@
 #' @param threshold decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome
 #' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
 #'
+#' @importFrom dplyr left_join
+#' @import stats
 #' @export
 #'
 #' @returns
@@ -23,6 +25,11 @@
 compute_estimates <- function(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE,
                               nuisance_models, CATE_models,
                               threshold, ps_trunc_level = 0.01){
+
+  # if pid not in df, make pid index
+  if (!"pid" %in% colnames(df)) {
+    df$pid <- as.numeric(rownames(df))
+  }
 
   k_folds <- max(k_fold_assign_and_CATE$k)
 
