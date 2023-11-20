@@ -83,6 +83,12 @@ Example with simulation data, pre-fit nuisance
                           k_folds = 2,
                           ps_trunc_level = 0.01,
                           outcome_type = "gaussian")
-
+                          
+    overall_results <- results$overall_results      # dataframe of overall results aggregated across `k` folds
+    EY_A1_d1 <- results$EY_A1_d1                    # dataframe of AIPTW for optimally treated in each fold
+    EY_A0_d1 <- results$EY_A0_d1                    # dataframe of AIPTW for not treating those who should be treated under decision rule in each fold
+    treatment_effect <- results$treatment_effect    # dataframe of treatment effect in each fold
+    decision_df <- results$decision_df              # original dataset with decision made for each observation
+    CATE_models <- results$CATE_models              # CATE model used in each fold
 
    ```
