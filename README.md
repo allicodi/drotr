@@ -14,7 +14,7 @@ Once observations are assigned treatment under the OTR, we can measure the risk 
 
 **3. learn_CATE.R** - This script is used to fit a model for the CATE given a subset of covariates `Z` in the dataset
 
-**4. compute_estimates.R ** -  This script is used to generate AIPTW estimators for expected outcome among the optimally treated and expected treatment effect under the optimally treated. 
+**4. compute_estimates.R** -  This script is used to generate AIPTW estimators for expected outcome among the optimally treated and expected treatment effect under the optimally treated. 
 
 ## Usage:
 
