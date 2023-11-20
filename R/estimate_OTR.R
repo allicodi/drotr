@@ -62,8 +62,8 @@ estimate_OTR <- function(df,
     nuisance_output <- drotr::learn_nuisance(df, Y_name, A_name, sl.library.outcome, sl.library.treatment,
                                       sl.library.missingness, outcome_type, k_folds, ps_trunc_level)
 
-    nuisance_models <- nuisance_output[[1]]
-    k_fold_assign_and_CATE <- nuisance_output[[2]]
+    nuisance_models <- nuisance_output$nuisance_models
+    k_fold_assign_and_CATE <- nuisance_output$k_fold_assign_and_CATE
 
   }
 

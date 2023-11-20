@@ -63,7 +63,8 @@ learn_nuisance <- function(df,
                                                                        CATE_hat = output_learn[[2]]))
   }
 
-  return(list(k_fold_nuisance, k_fold_assign_and_CATE))
+  return(list(nuisance_models = k_fold_nuisance,
+              k_fold_assign_and_CATE = k_fold_assign_and_CATE))
 }
 
 #' Estimate nuisance models (outcome, treatment, and missingness) and calculate CATE hats for kth fold

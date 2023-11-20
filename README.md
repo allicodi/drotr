@@ -92,3 +92,60 @@ Example with simulation data, pre-fit nuisance
     CATE_models <- results$CATE_models              # CATE model used in each fold
 
    ```
+   
+Example with simulation data, no pre-fit models
+   
+```R
+  # Example usage of `drotr` package
+  # Using simulation data
+  
+  #
+  # Simulation 1: Two normal covariates
+  #
+  simulate_data_1 <- function(n=1e6){
+  W1 <- rnorm(n=n, 0,1)
+  W2 <- rnorm(n=n, 1,1)
+  
+  A <- rbinom(n, 1, 0.5)
+  
+  Y <- W1 + W2 + W1*A + rnorm(n, 0, 1)
+  
+  # add missingness randomly in 10%
+  delta <- rbinom(n = n, size = 1, prob = 0.1)
+  
+  # add missingness corresponding to delta
+  Y <- ifelse(delta == 0, Y, NA)
+  
+  return(data.frame(Y=Y, A=A, W1=W1, W2=W2)) 
+  
+  }
+  
+  df <- simulate_data_1(n=5000)
+  Z_list <- c("W1")
+  sl.library <- c("SL.mean", "SL.glm", "SL.glm.interaction") #using same libraries for each step
+  decision_threshold <- 0
+  
+  results <- estimate_OTR(df = df,
+                          Y_name = "Y",
+                          A_name = "A",
+                          Z_list = Z_list,
+                          sl.library.CATE = sl.library,
+                          nuisance_models = NULL,
+                          k_fold_assign_and_CATE = NULL,
+                          sl.library.outcome = sl.library,
+                          sl.library.treatment = sl.library,
+                          sl.library.missingness = sl.library,
+                          threshold = 0,
+                          k_folds = 2,
+                          ps_trunc_level = 0.01,
+                          outcome_type = "gaussian")
+                          
+    overall_results <- results$overall_results      # dataframe of overall results aggregated across `k` folds
+    EY_A1_d1 <- results$EY_A1_d1                    # dataframe of AIPTW for optimally treated in each fold
+    EY_A0_d1 <- results$EY_A0_d1                    # dataframe of AIPTW for not treating those who should be treated under decision rule in each fold
+    treatment_effect <- results$treatment_effect    # dataframe of treatment effect in each fold
+    decision_df <- results$decision_df              # original dataset with decision made for each observation
+    CATE_models <- results$CATE_models              # CATE model used in each fold
+
+   ```
+   
