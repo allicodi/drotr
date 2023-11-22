@@ -44,6 +44,8 @@ estimate_OTR <- function(df,
                          ps_trunc_level = 0.01,
                          outcome_type = "gaussian"){
 
+  # TODO specify id name variable (could be null)
+
   # --------------------------------------------------------------------------
   # 1 - Fit nuisance models (if not provided)
   # --------------------------------------------------------------------------
@@ -80,6 +82,8 @@ estimate_OTR <- function(df,
                                 threshold, ps_trunc_level)
 
   results$CATE_models <- CATE_models
+
+  # TODO add print method (give results a class, make another function called print.className, extract what we want to show user)
 
   return(results)
 

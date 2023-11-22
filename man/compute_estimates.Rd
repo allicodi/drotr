@@ -41,6 +41,7 @@ compute_estimates(
  \item{\code{EY_A1_d1}}{dataframe of AIPTW for optimally treated in each fold}
  \item{\code{EY_A0_d1}}{dataframe of AIPTW for not treating those who should be treated under decision rule in each fold}
  \item{\code{treatment_effect}}{dataframe of treatment effect in each fold}
+ \item{\code{influence_fns}}{influence functions used in each fold}
  \item{\code{decision_df}}{original dataset with decision made for each observation}
  }
 }

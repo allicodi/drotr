@@ -33,7 +33,7 @@ compute_estimate_k(
 \item{ps_trunc_level}{numeric level to use for truncation of any predicted values that fall below it}
 }
 \value{
-a list with (1) dataframe with estimated treatment effect among optimally treated, (2) dataframe with estimated outcome if not treated among those who should be treated by decision rule, (3) overall treatment effect among optimally treated, (4) original kth fold data with corresponding treatment decisions
+a list with (1) dataframe with estimated treatment effect among optimally treated, (2) dataframe with estimated outcome if not treated among those who should be treated by decision rule, (3) overall treatment effect among optimally treated, (4) influence function matrix, (5) original kth fold data with corresponding treatment decisions
 }
 \description{
 Make treatment decisions and compute estimated outcomes/treatment effects in kth fold
