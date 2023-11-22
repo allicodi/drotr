@@ -7,15 +7,6 @@ We define OTRs through the use of conditional average treatment effects (CATEs).
 
 Once observations are assigned treatment under the OTR, we can measure the risk of outcome in the optimally treated and the average treatment effects among the optimally treated. We estimate these using Augmented Inverse Probability of Treatment Weight (AIPTW) estimators.
 
-## Scripts:
-**1. estimate_OTR.R** - This is the primary R script for finding optimal treatment rules and estimating outcomes among the optimally treated. 
-
-**2. learn_nuisance.R** - This script is used to fit outcome, treatment, and missingness models for a given dataset. It also estimates $\hat{CATE}$ for observations in a dataset. The script can be run prior to `estimate_OTR` to pre-fit nuisance models for `estimate_OTR`, or nuisance models can be fit within `estimate_OTR`
-
-**3. learn_CATE.R** - This script is used to fit a model for the CATE given a subset of covariates `Z` in the dataset
-
-**4. compute_estimates.R** -  This script is used to generate AIPTW estimators for expected outcome among the optimally treated and expected treatment effect under the optimally treated. 
-
 ## Installation:
 
 A developmental release may be installed from GitHub via devtools with:
