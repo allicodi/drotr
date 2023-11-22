@@ -15,7 +15,7 @@ A developmental release may be installed from GitHub via devtools with:
 
 ## Usage:
 
-Suppose we have a dataset `df` consisting of continuous or binary outcome variable `Y`, baseline covariates `W`, and binary treatment variable `W`. We want to estimate an optimal treatment rule (OTR) based on a subest of covariates `Z`. `Y` may also contain missing data. 
+Suppose we have a dataset `df` consisting of continuous or binary outcome variable `Y`, baseline covariates `W`, and binary treatment variable `A`. We want to estimate an optimal treatment rule (OTR) based on a subest of covariates `Z`. `Y` may also contain missing data. 
 
 ```R
   
