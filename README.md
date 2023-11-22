@@ -81,6 +81,21 @@ The function `estimate_OTR` will assign treatment to all observations in `df` wi
 
 ```
 
+Printing results will display estimates and 95% confidence intervals for each AIPTW estimate and the overall treatment effect under the optimal treatment rule. It will also provide the proportion of the dataset treated under the OTR:
+
+```
+                               Results Aggregated Across k =  2  folds 
+---------------------------------------------------------------------------------------------------- 
+                         Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+---------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]       2.5607              0.0428              2.4768              2.6445              
+E[Y(0) | d(Z) = 1]       1.7601              0.0369              1.6878              1.8324              
+E[Y(0) - Y(1)]           0.4                 0.0227              0.3554              0.4445              
+
+Proportion treated under OTR:  0.5012
+
+```
+
 Alternatively, nuisance models could be pre-fit for a given set of covariates `W`. This is helpful for cycling through multiple potential decision rules (multiple sets of `Z`).
 
 ```R
