@@ -83,7 +83,7 @@ estimate_OTR <- function(df,
 
   results$CATE_models <- CATE_models
 
-  # TODO add print method (give results a class, make another function called print.className, extract what we want to show user)
+  class(results) <- "otr_results"
 
   return(results)
 
