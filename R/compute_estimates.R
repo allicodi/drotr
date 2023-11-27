@@ -244,6 +244,10 @@ compute_estimate_k <- function(df, Y_name, A_name, Z_list,
 
   var_treatment_effect <- t(gradient_g) %*% cov_matrix %*% gradient_g
 
+  # add a column for the influence function of treatment_effect
+  inf_fn_treatment_effect <- as.numeric(inf_fn_matrix %*% gradient_g)
+  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_treatment_effect)
+
   # return  (1) dataframe with estimated treatment effect among optimally treated
   #         (2) dataframe with estimated outcome if not treated among those who should be treated by decision rule
   #         (3) overall treatment effect among optimally treated
