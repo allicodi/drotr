@@ -61,6 +61,7 @@ estimate_OTR(
  \item{\code{treatment_effect}}{dataframe of treatment effect in each fold}
  \item{\code{decision_df}}{original dataset with decision made for each observation}
  \item{\code{CATE_models}}{CATE model used in each fold}
+ \item{\code{Z_list}}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
  }
 }
 \description{

@@ -50,9 +50,7 @@ print.otr_results <- function(x, ...){
 
   cat(paste("\nProportion treated under OTR: ", round(prop_treated, 4)))
 
-  Z_list <- names(x$CATE_models[[1]]$object$coefficients)[-1]
-
-  cat(paste("\nCovariates used in decision rule: ", paste(Z_list, collapse = ", ")))
+  cat(paste("\nCovariates used in decision rule: ", paste(x$Z_list, collapse = ", ")))
 
   invisible(tmp)
 
