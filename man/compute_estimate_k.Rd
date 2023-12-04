@@ -8,6 +8,7 @@ compute_estimate_k(
   df,
   Y_name,
   A_name,
+  W_list,
   Z_list,
   CATE_model,
   nuisance,
@@ -21,6 +22,8 @@ compute_estimate_k(
 \item{Y_name}{name of outcome variable in df}
 
 \item{A_name}{name of treatment variable in df}
+
+\item{W_list}{character vector containing names of covariates in the dataframe to be used in nuisance models}
 
 \item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 

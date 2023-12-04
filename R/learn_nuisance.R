@@ -3,6 +3,7 @@
 #' @param df dataframe containing full dataset
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
+#' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
@@ -22,6 +23,7 @@
 learn_nuisance <- function(df,
                            Y_name,
                            A_name,
+                           W_list,
                            sl.library.outcome,
                            sl.library.treatment,
                            sl.library.missingness,
@@ -43,6 +45,7 @@ learn_nuisance <- function(df,
     output_learn <- learn_nuisance_k(df_learn,
                                       Y_name,
                                       A_name,
+                                      W_list,
                                       sl.library.outcome,
                                       sl.library.treatment,
                                       sl.library.missingness,
@@ -74,6 +77,7 @@ learn_nuisance <- function(df,
 #' @param df dataframe containing training dataset
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
+#' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome model
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment model
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness model
@@ -86,7 +90,7 @@ learn_nuisance <- function(df,
 #'  \item{\code{k_fold_assign_and_CATE}}{numeric vector of CATE estimates for data in df}
 #'  }
 #' @keywords internal
-learn_nuisance_k <- function(df, Y_name, A_name,
+learn_nuisance_k <- function(df, Y_name, A_name, W_list,
                          sl.library.outcome,
                          sl.library.treatment,
                          sl.library.missingness,
@@ -98,13 +102,13 @@ learn_nuisance_k <- function(df, Y_name, A_name,
   Y <- df[[Y_name]]
   A_vec <- df[[A_name]]
   A <- df[,A_name, drop=FALSE]
-  W <- df[,!(names(df) %in% c(Y_name, A_name, "pid", "lazd90")), drop = FALSE] #QUESTION leaving laz_d90
+  W <- df[,W_list, drop=FALSE]
 
   # Complete observations only (no NA)
   df_complete <- df[!is.na(df[[Y_name]]), ] #dataframe removing missing Ys
   Y_complete <- df_complete[[Y_name]]
   A_complete <- df_complete[, A_name, drop=FALSE]
-  W_complete <- df_complete[,!(names(df) %in% c(Y_name, A_name, "pid", "lazd90")), drop = FALSE]
+  W_complete <- df_complete[, W_list, drop = FALSE]
 
   ### 1 - Fit outcome model ###
 

@@ -3,6 +3,7 @@
 #' @param df dataframe containing dataset
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
+#' @param W_list character vector containing names of covariates in the dataframe to be used in nuisance models
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)
 #' @param k_fold_assign_and_CATE dataframe containing pids, fold assignments, and CATE estimate for each observation in df
 #' @param CATE_models list of discrete SuperLearner models for CATE from each fold
@@ -23,7 +24,8 @@
 #'  \item{\code{influence_fns}}{influence functions used in each fold}
 #'  \item{\code{decision_df}}{original dataset with decision made for each observation}
 #'  }
-compute_estimates <- function(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE,
+compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
+                              k_fold_assign_and_CATE,
                               nuisance_models, CATE_models,
                               threshold, ps_trunc_level = 0.01){
 
@@ -60,7 +62,7 @@ compute_estimates <- function(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE
     # (3) overall treatment effect among optimally treated
     # (4) influence function matrix
     # (5) original kth fold data with corresponding treatment decisions
-    compute_est_output <- compute_estimate_k(df_est, Y_name, A_name, Z_list,
+    compute_est_output <- compute_estimate_k(df_est, Y_name, A_name, W_list, Z_list,
                                      CATE_model, nuisance_model,
                                      threshold, ps_trunc_level)
 
@@ -116,6 +118,7 @@ compute_estimates <- function(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE
 #' @param df dataframe containing testing dataset
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
+#' @param W_list character vector containing names of covariates in the dataframe to be used in nuisance models
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)
 #' @param CATE_model discrete SuperLearner model for CATE
 #' @param nuisance object of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models
@@ -125,7 +128,7 @@ compute_estimates <- function(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE
 #' @returns a list with (1) dataframe with estimated treatment effect among optimally treated, (2) dataframe with estimated outcome if not treated among those who should be treated by decision rule, (3) overall treatment effect among optimally treated, (4) influence function matrix, (5) original kth fold data with corresponding treatment decisions
 #'
 #' @keywords internal
-compute_estimate_k <- function(df, Y_name, A_name, Z_list,
+compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
                              CATE_model, nuisance,
                              threshold, ps_trunc_level = 0.01){
 
@@ -138,7 +141,7 @@ compute_estimate_k <- function(df, Y_name, A_name, Z_list,
   I_Y <- ifelse(is.na(df[[Y_name]]), 1, 0) #indicator for Y missing
   Y <- df[[Y_name]]
   A <- df[[A_name]]
-  W <- df[,!(names(df) %in% c(Y_name, A_name, "pid", "lazd90")), drop = FALSE]
+  W <- df[, W_list, drop = FALSE]
   Z <- df[, Z_list, drop = FALSE]
 
   ### Step 1: using df_est, get prediction from CATE model and find observations that meet treatment threshold
@@ -228,6 +231,8 @@ compute_estimate_k <- function(df, Y_name, A_name, Z_list,
 
   # E[Y(d) - Y(0)] = E[Y(d) | d(Z) = 1]*P(d(Z) = 1) - E[Y(0) | d(Z) = 1 ]*P(d(Z) = 1)
   treatment_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]) * mean_dZ
+
+  #todo- return this without multiplying by the proportion
 
   # "n" x 3 matrix
   inf_fn_matrix <- cbind(

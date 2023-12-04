@@ -6,6 +6,7 @@
 #' @param df dataframe containing full dataset
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
+#' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
@@ -32,6 +33,7 @@
 estimate_OTR <- function(df,
                          Y_name,
                          A_name,
+                         W_list,
                          Z_list,
                          sl.library.CATE,
                          nuisance_models = NULL,
@@ -61,7 +63,7 @@ estimate_OTR <- function(df,
       return(print("Must provide outcome, treatment, and missingness libraries to estimate nuisance models."))
     }
 
-    nuisance_output <- drotr::learn_nuisance(df, Y_name, A_name, sl.library.outcome, sl.library.treatment,
+    nuisance_output <- drotr::learn_nuisance(df, Y_name, A_name, W_list, sl.library.outcome, sl.library.treatment,
                                       sl.library.missingness, outcome_type, k_folds, ps_trunc_level)
 
     nuisance_models <- nuisance_output$nuisance_models
@@ -77,9 +79,10 @@ estimate_OTR <- function(df,
   # --------------------------------------------------------------------------
   # 3 - Make treatment decisions and compute treatment effects
   # --------------------------------------------------------------------------
-  results <- drotr::compute_estimates(df, Y_name, A_name, Z_list, k_fold_assign_and_CATE,
-                                nuisance_models, CATE_models,
-                                threshold, ps_trunc_level)
+  results <- drotr::compute_estimates(df, Y_name, A_name, W_list, Z_list,
+                                      k_fold_assign_and_CATE,
+                                      nuisance_models, CATE_models,
+                                      threshold, ps_trunc_level)
 
   results$CATE_models <- CATE_models
 

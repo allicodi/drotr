@@ -8,6 +8,7 @@ learn_nuisance(
   df,
   Y_name,
   A_name,
+  W_list,
   sl.library.outcome,
   sl.library.treatment,
   sl.library.missingness,
@@ -22,6 +23,8 @@ learn_nuisance(
 \item{Y_name}{name of outcome variable in df}
 
 \item{A_name}{name of treatment variable in df}
+
+\item{W_list}{character vector containing names of covariates in the dataframe to be used for fitting nuisance models}
 
 \item{sl.library.outcome}{character vector of SuperLearner libraries to use to fit the outcome models}
 

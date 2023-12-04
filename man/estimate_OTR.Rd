@@ -8,6 +8,7 @@ estimate_OTR(
   df,
   Y_name,
   A_name,
+  W_list,
   Z_list,
   sl.library.CATE,
   nuisance_models = NULL,
@@ -27,6 +28,8 @@ estimate_OTR(
 \item{Y_name}{name of outcome variable in df}
 
 \item{A_name}{name of treatment variable in df}
+
+\item{W_list}{character vector containing names of covariates in the dataframe to be used for fitting nuisance models}
 
 \item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 

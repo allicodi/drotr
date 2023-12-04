@@ -57,11 +57,18 @@ The function `estimate_OTR` will assign treatment to all observations in `df` wi
   # CATE model SuperLearner libraries
   sl.library.CATE <- c("SL.mean", "SL.glm", "SL.glm.interaction")
   
+  # List of covariates to use to estimate Nuisance models
+  W_list <- c("W1", "W2")
+  
+  # List of covariates to use to estimate CATE model 
+  Z_list <- c("W1")
+  
   decision_threshold <- 0  # clinically relevance threshold for treatment effect (>=0 if desired outcome Y, negative in undesirable)
   
   results <- estimate_OTR(df = df,
                           Y_name = "Y",
                           A_name = "A",
+                          W_list = W_list,
                           Z_list = Z_list,
                           sl.library.CATE = sl.library.CATE,
                           sl.library.outcome = sl.library.outcome,
@@ -106,13 +113,20 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
   sl.library.missingness <- c("SL.mean", "SL.glm", "SL.glm.interaction")  # libraries to use for missingness model
   
   # CATE model SuperLearner libraries
-  sl.library.CATE <- c("SL.glm", "SL.glm.interaction")
+  sl.library.CATE <- c("SL.mean", "SL.glm", "SL.glm.interaction")
+  
+  # List of covariates to use to estimate Nuisance models
+  W_list <- c("W1", "W2")
+  
+  # List of covariates to use to estimate CATE model 
+  Z_list <- c("W1")
   
   decision_threshold <- 0  # clinically relevance threshold for treatment effect (>=0 if desired outcome Y, negative in undesirable)
   
   nuisance_output <- learn_nuisance(df = df,
                                     Y_name = "Y",
                                     A_name = "A",
+                                    W_list = W_list,
                                     sl.library.outcome = sl.library.outcome,
                                     sl.library.treatment = sl.library.treatment,
                                     sl.library.missingness = sl.library.missingness,
@@ -132,6 +146,7 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
     results <- estimate_OTR(df = df,
                           Y_name = "Y",
                           A_name = "A",
+                          W_list = W_list,
                           Z_list = Z_list,
                           sl.library.CATE = sl.library.CATE,
                           nuisance_models = nuisance_models,
