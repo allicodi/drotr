@@ -34,6 +34,8 @@ estimate_OTR(
 
 \item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 
+\item{id_name}{name of participant ID variable}
+
 \item{sl.library.CATE}{character vector of SuperLearner libraries to use to fit the CATE model}
 
 \item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)}

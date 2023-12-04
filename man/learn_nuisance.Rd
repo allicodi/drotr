@@ -9,6 +9,7 @@ learn_nuisance(
   Y_name,
   A_name,
   W_list,
+  id_name = NULL,
   sl.library.outcome,
   sl.library.treatment,
   sl.library.missingness,
