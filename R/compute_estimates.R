@@ -50,6 +50,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     df_est <- df[df$id %in% kth_subset_ids, , drop = FALSE]
 
     # join CATEhat with data by id
+    df_est$id <- as.character(df_est$id)
+    k_fold_assign_and_CATE$id <- as.character(k_fold_assign_and_CATE$id)
+
     df_est <- dplyr::left_join(df_est, k_fold_assign_and_CATE, by = "id")
 
     #get models used in kth fold
