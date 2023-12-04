@@ -10,6 +10,7 @@ estimate_OTR(
   A_name,
   W_list,
   Z_list,
+  id_name = NULL,
   sl.library.CATE,
   nuisance_models = NULL,
   k_fold_assign_and_CATE = NULL,
@@ -37,7 +38,7 @@ estimate_OTR(
 
 \item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)}
 
-\item{k_fold_assign_and_CATE}{dataframe containing pids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)}
+\item{k_fold_assign_and_CATE}{dataframe containing ids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)}
 
 \item{sl.library.outcome}{character vector of SuperLearner libraries to use to fit the outcome models}
 

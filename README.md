@@ -112,7 +112,7 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
   sl.library.missingness <- c("SL.mean", "SL.glm", "SL.glm.interaction")  # libraries to use for missingness model
   
   # CATE model SuperLearner libraries
-  sl.library.CATE <- c("SL.mean", "SL.glm", "SL.glm.interaction")
+  sl.library.CATE <- c("SL.glm", "SL.glm.interaction")
   
   # List of covariates to use to estimate Nuisance models
   W_list <- c("W1", "W2")

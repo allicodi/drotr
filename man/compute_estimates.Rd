@@ -28,7 +28,7 @@ compute_estimates(
 
 \item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 
-\item{k_fold_assign_and_CATE}{dataframe containing pids, fold assignments, and CATE estimate for each observation in df}
+\item{k_fold_assign_and_CATE}{dataframe containing ids, fold assignments, and CATE estimate for each observation in df}
 
 \item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
 

@@ -5,7 +5,7 @@
 #' @param A_name name of treatment variable in df
 #' @param W_list character vector containing names of covariates in the dataframe to be used in nuisance models
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)
-#' @param k_fold_assign_and_CATE dataframe containing pids, fold assignments, and CATE estimate for each observation in df
+#' @param k_fold_assign_and_CATE dataframe containing ids, fold assignments, and CATE estimate for each observation in df
 #' @param CATE_models list of discrete SuperLearner models for CATE from each fold
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models
 #' @param threshold decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome
@@ -30,9 +30,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                               threshold, ps_trunc_level = 0.01){
 
   # if pid not in df, make pid index
-  if (!"pid" %in% colnames(df)) {
-    df$pid <- as.numeric(rownames(df))
-  }
+  # if (!"pid" %in% colnames(df)) {
+  #   df$pid <- as.numeric(rownames(df))
+  # }
 
   k_folds <- max(k_fold_assign_and_CATE$k)
 
@@ -44,13 +44,13 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 
   for(k in 1:k_folds){
     # get patient ids that are in the kth fold
-    kth_subset_pids <- k_fold_assign_and_CATE$pid[k_fold_assign_and_CATE$k == k]
+    kth_subset_ids <- k_fold_assign_and_CATE$id[k_fold_assign_and_CATE$k == k]
 
     # estimate CATE hat model kth fold (testing data)
-    df_est <- df[df$pid %in% kth_subset_pids, , drop = FALSE]
+    df_est <- df[df$id %in% kth_subset_ids, , drop = FALSE]
 
     # join CATEhat with data by id
-    df_est <- dplyr::left_join(df_est, k_fold_assign_and_CATE, by = "pid")
+    df_est <- dplyr::left_join(df_est, k_fold_assign_and_CATE, by = "id")
 
     #get models used in kth fold
     nuisance_model <- nuisance_models[[k]]
@@ -72,7 +72,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_inf_fn_matrix <- c(k_fold_inf_fn_matrix, list(compute_est_output[[4]]))
 
     kth_decision_df <- compute_est_output[[5]]
-    k_fold_decisions <- rbind(k_fold_decisions, data.frame(pid = kth_decision_df$pid,
+    k_fold_decisions <- rbind(k_fold_decisions, data.frame(id = kth_decision_df$id,
                                                            k = k,
                                                            decision = kth_decision_df$d_pred))
   }
@@ -104,7 +104,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
   # results from each fold for aiptw_a_0,
   # results from each fold for treatment effect,
   # influence functions from each fold
-  # dataset with pid/predictions
+  # dataset with id/predictions
   return(list(overall_results = results,
               EY_A1_d1 = k_fold_output_aiptw_a_1,
               EY_A0_d1 = k_fold_output_aiptw_a_0,

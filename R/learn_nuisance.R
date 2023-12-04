@@ -24,12 +24,20 @@ learn_nuisance <- function(df,
                            Y_name,
                            A_name,
                            W_list,
+                           id_name,
                            sl.library.outcome,
                            sl.library.treatment,
                            sl.library.missingness,
                            outcome_type,
                            k_folds = 2,
                            ps_trunc_level = 0.01){
+
+  # if id_name not specified, make index id
+  if(is.null(id_name)){
+    df$id <- rownames(df)
+  } else {
+    df$id <- df$id_name
+  }
 
   # split into k equal sized folds and randomly shuffle
   folds <- cut(seq(1,nrow(df)),breaks=k_folds,labels=FALSE)
@@ -55,13 +63,13 @@ learn_nuisance <- function(df,
     k_fold_nuisance[[k]] <- output_learn[[1]]
 
 
-    # if "pid" not in data, use index as pid
-    if(!("pid" %in% names(df_learn))){
-      df_learn$pid <- rownames(df_learn)
-    }
+    # # if "pid" not in data, use index as pid
+    # if(!("pid" %in% names(df_learn))){
+    #   df_learn$pid <- rownames(df_learn)
+    # }
 
     # note here k is actually denoting the fold that was left out of the training set
-    k_fold_assign_and_CATE <- rbind(k_fold_assign_and_CATE, data.frame(pid = as.numeric(df_learn$pid),
+    k_fold_assign_and_CATE <- rbind(k_fold_assign_and_CATE, data.frame(id = as.numeric(df_learn$id),
                                                                        k = k,
                                                                        CATE_hat = output_learn[[2]]))
   }

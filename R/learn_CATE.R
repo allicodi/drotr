@@ -2,7 +2,7 @@
 #'
 #' @param df dataframe containing full dataset
 #' @param Z_list character vector containing names of variables in df to use to fit CATE model (variables used in treatment rule)
-#' @param k_fold_assign_and_CATE dataframe containing pids, fold assignments, and CATE estimate for each observation in df
+#' @param k_fold_assign_and_CATE dataframe containing ids, fold assignments, and CATE estimate for each observation in df
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
 #'
 #' @importFrom dplyr left_join
@@ -14,22 +14,22 @@
 learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
 
   # if pid not in df, make pid index
-  if (!"pid" %in% colnames(df)) {
-    df$pid <- as.numeric(rownames(df))
-  }
+  # if (!"pid" %in% colnames(df)) {
+  #   df$pid <- as.numeric(rownames(df))
+  # }
 
   k_folds <- max(k_fold_assign_and_CATE$k)
   k_fold_CATE_models <- vector(mode = "list", length = k_folds)
 
   for(k in 1:k_folds){
     # get patient ids that are in the kth fold
-    kth_subset_pids <- k_fold_assign_and_CATE$pid[k_fold_assign_and_CATE$k == k]
+    kth_subset_ids <- k_fold_assign_and_CATE$id[k_fold_assign_and_CATE$k == k]
 
     # estimate CATE hat model on all folds except kth (training data)
-    df_learn <- df[!(df$pid %in% kth_subset_pids), , drop = FALSE]
+    df_learn <- df[!(df$id %in% kth_subset_ids), , drop = FALSE]
 
     # join CATEhat with data by id
-    df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE, by = "pid")
+    df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE, by = "id")
 
     k_fold_CATE_models[[k]] <- learn_CATE_k(df_learn, Z_list, sl.library.CATE)
   }

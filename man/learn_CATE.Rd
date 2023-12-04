@@ -11,7 +11,7 @@ learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE)
 
 \item{Z_list}{character vector containing names of variables in df to use to fit CATE model (variables used in treatment rule)}
 
-\item{k_fold_assign_and_CATE}{dataframe containing pids, fold assignments, and CATE estimate for each observation in df}
+\item{k_fold_assign_and_CATE}{dataframe containing ids, fold assignments, and CATE estimate for each observation in df}
 
 \item{sl.library.CATE}{character vector of SuperLearner libraries to use to fit the CATE model}
 }

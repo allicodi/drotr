@@ -8,9 +8,10 @@
 #' @param A_name name of treatment variable in df
 #' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)
+#' @param id_name name of participant ID variable
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
-#' @param k_fold_assign_and_CATE dataframe containing pids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)
+#' @param k_fold_assign_and_CATE dataframe containing ids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
@@ -36,6 +37,7 @@ estimate_OTR <- function(df,
                          A_name,
                          W_list,
                          Z_list,
+                         id_name = NULL,
                          sl.library.CATE,
                          nuisance_models = NULL,
                          k_fold_assign_and_CATE = NULL,
@@ -47,7 +49,16 @@ estimate_OTR <- function(df,
                          ps_trunc_level = 0.01,
                          outcome_type = "gaussian"){
 
-  # TODO specify id name variable (could be null)
+  # --------------------------------------------------------------------------
+  # 0 - Prep dataset
+  # --------------------------------------------------------------------------
+
+  # if id_name not specified, make index id
+  if(is.null(id_name)){
+    df$id <- rownames(df)
+  } else {
+    df$id <- df$id_name
+  }
 
   # --------------------------------------------------------------------------
   # 1 - Fit nuisance models (if not provided)
