@@ -41,7 +41,6 @@ Suppose we have a dataset `df` consisting of continuous or binary outcome variab
   }
   
   df <- simulate_data(n=5000)
-  Z_list <- c("W1")
   
 ```
 
@@ -50,8 +49,8 @@ The function `estimate_OTR` will assign treatment to all observations in `df` wi
 ```R
   
   # Nuisance model SuperLearner libraries
-  sl.library.outcome <- c("SL.mean", "SL.glm", "SL.glm.interaction")      # libraries to use for outcome model
-  sl.library.treatment <- c("SL.mean", "SL.glm", "SL.glm.interaction")    # libraries to use for treatment model
+  sl.library.outcome <- c("SL.glm", "SL.glm.interaction")      # libraries to use for outcome model
+  sl.library.treatment <- c("SL.glm", "SL.glm.interaction")    # libraries to use for treatment model
   sl.library.missingness <- c("SL.mean", "SL.glm", "SL.glm.interaction")  # libraries to use for missingness model
   
   # CATE model SuperLearner libraries
@@ -108,8 +107,8 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
 ```R
   
   # Nuisance model SuperLearner libraries
-  sl.library.outcome <- c("SL.mean", "SL.glm", "SL.glm.interaction")      # libraries to use for outcome model
-  sl.library.treatment <- c("SL.mean", "SL.glm", "SL.glm.interaction")    # libraries to use for treatment model
+  sl.library.outcome <- c("SL.glm", "SL.glm.interaction")      # libraries to use for outcome model
+  sl.library.treatment <- c("SL.glm", "SL.glm.interaction")    # libraries to use for treatment model
   sl.library.missingness <- c("SL.mean", "SL.glm", "SL.glm.interaction")  # libraries to use for missingness model
   
   # CATE model SuperLearner libraries
