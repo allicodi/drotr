@@ -276,29 +276,30 @@ Covariates used in decision rule:  W1, W2
 
 The results object has the following structure:
 
+```
 results_object
-
-|_results \n 
-  |_threshold = t1 `Results` object \n
-    |_aggregated_results \n
-    |_k_fold_results \n
-    |_decision_df \n
-  |_ threshold = t2 `Results` object \n
-  |_ ... \n
-  |_ threshold = tn `Results` object \n
-|_nuisance_models \n
-  |_fold 1 `Nuisance` object \n
-    |_outcome_model\n
-    |_treatment_model\n
-    |_missingess_model\n
-  |_fold 2 `Nuisance` object\n
-  |_ ... \n
-  |_fold k `Nuisance` object\n
-|_CATE_models\n
-  |_ fold 1 CATE model\n
-  |_ fold 2 CATE model\n
-  |_ ...\n
-  |_ fold k CATE model\n
-|_Z_list\n
+|_results   
+  |_threshold = t1 `Results` object  
+    |_aggregated_results  
+    |_k_fold_results  
+    |_decision_df  
+  |_ threshold = t2 `Results` object  
+  |_ ...  
+  |_ threshold = tn `Results` object  
+|_nuisance_models  
+  |_fold 1 `Nuisance` object  
+    |_outcome_model  
+    |_treatment_model  
+    |_missingess_model  
+  |_fold 2 `Nuisance` object  
+  |_ ...  
+  |_fold k `Nuisance` object  
+|_CATE_models  
+  |_ fold 1 CATE model  
+  |_ fold 2 CATE model  
+  |_ ... 
+  |_ fold k CATE model  
+|_Z_list  
+```
 
 Aggregated and individual level decisions by threshold and fold can be accessed through the results object. Models for outcome, treatment, missingness, and CATE by fold are also returned in the results object. More details about components of results object can be found in roxygen help documentation.
