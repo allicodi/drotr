@@ -191,7 +191,7 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   Z <- df[, Z_list, drop = FALSE]
 
   ### Step 1: using df_est, get prediction from CATE model and find observations that meet treatment threshold
-  CATE_pred <- stats::predict(CATE_model, Z, type = 'response', family = stats::gaussian())
+  CATE_pred <- stats::predict(CATE_model, Z, type = 'response')
 
   # d_pred <- ifelse(CATE_pred < -abs(threshold), 1, 0)
 
