@@ -4,6 +4,7 @@
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
 #' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
+#' @param id_name name of patient id variable in dataset if applicable, will default to NULL and use observation index
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models

@@ -17,7 +17,7 @@ estimate_OTR(
   sl.library.outcome = NULL,
   sl.library.treatment = NULL,
   sl.library.missingness = NULL,
-  threshold = 0.05,
+  threshold = c("0.05"),
   k_folds = 2,
   ps_trunc_level = 0.01,
   outcome_type = "gaussian"
@@ -48,7 +48,7 @@ estimate_OTR(
 
 \item{sl.library.missingness}{character vector of SuperLearner libraries to use to fit the missingness models}
 
-\item{threshold}{decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome}
+\item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
 \item{k_folds}{integer number of folds to use for cross-validation (must specify if fitting outcome, treatment, and missingness models. Otherwise uses k from `k_fold_assign_and_CATE`)}
 

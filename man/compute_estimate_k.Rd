@@ -12,6 +12,7 @@ compute_estimate_k(
   Z_list,
   CATE_model,
   nuisance,
+  sign,
   threshold,
   ps_trunc_level = 0.01
 )
@@ -31,12 +32,16 @@ compute_estimate_k(
 
 \item{nuisance}{object of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
 
-\item{threshold}{decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome}
+\item{sign}{sign of threshold, + indicates `Y` is a desirable outcome, - indicates `Y` is an undesirable outcome}
+
+\item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
 \item{ps_trunc_level}{numeric level to use for truncation of any predicted values that fall below it}
 }
 \value{
-a list with (1) dataframe with estimated treatment effect among optimally treated, (2) dataframe with estimated outcome if not treated among those who should be treated by decision rule, (3) overall treatment effect among optimally treated, (4) influence function matrix, (5) original kth fold data with corresponding treatment decisions
+\describe{
+       (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
+ }
 }
 \description{
 Make treatment decisions and compute estimated outcomes/treatment effects in kth fold

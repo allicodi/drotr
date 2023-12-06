@@ -15,7 +15,7 @@
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
-#' @param threshold decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome
+#' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
 #' @param k_folds integer number of folds to use for cross-validation (must specify if fitting outcome, treatment, and missingness models. Otherwise uses k from `k_fold_assign_and_CATE`)
 #' @param ps_trunc_level numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)
 #' @param outcome_type outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)
@@ -44,7 +44,7 @@ estimate_OTR <- function(df,
                          sl.library.outcome = NULL,
                          sl.library.treatment = NULL,
                          sl.library.missingness = NULL,
-                         threshold = 0.05,
+                         threshold = c("0.05"),
                          k_folds = 2,
                          ps_trunc_level = 0.01,
                          outcome_type = "gaussian"){
@@ -75,7 +75,7 @@ estimate_OTR <- function(df,
       return(print("Must provide outcome, treatment, and missingness libraries to estimate nuisance models."))
     }
 
-    nuisance_output <- drotr::learn_nuisance(df, Y_name, A_name, W_list, sl.library.outcome, sl.library.treatment,
+    nuisance_output <- drotr::learn_nuisance(df, Y_name, A_name, W_list, id_name, sl.library.outcome, sl.library.treatment,
                                       sl.library.missingness, outcome_type, k_folds, ps_trunc_level)
 
     nuisance_models <- nuisance_output$nuisance_models

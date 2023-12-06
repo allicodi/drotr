@@ -27,6 +27,8 @@ learn_nuisance(
 
 \item{W_list}{character vector containing names of covariates in the dataframe to be used for fitting nuisance models}
 
+\item{id_name}{name of patient id variable in dataset if applicable, will default to NULL and use observation index}
+
 \item{sl.library.outcome}{character vector of SuperLearner libraries to use to fit the outcome models}
 
 \item{sl.library.treatment}{character vector of SuperLearner libraries to use to fit the treatment models}

@@ -34,17 +34,14 @@ compute_estimates(
 
 \item{CATE_models}{list of discrete SuperLearner models for CATE from each fold}
 
-\item{threshold}{decision threshold for CATE to determine OTR. `treatment` should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome}
+\item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
 \item{ps_trunc_level}{numeric level to use for truncation of any predicted values that fall below it}
 }
 \value{
 \describe{
  \item{\code{overall_results}}{dataframe of overall results aggregated across `k` folds}
- \item{\code{EY_A1_d1}}{dataframe of AIPTW for optimally treated in each fold}
- \item{\code{EY_A0_d1}}{dataframe of AIPTW for not treating those who should be treated under decision rule in each fold}
- \item{\code{treatment_effect}}{dataframe of treatment effect in each fold}
- \item{\code{influence_fns}}{influence functions used in each fold}
+ \item{\code{k_fold_results}}{list of results by fold}
  \item{\code{decision_df}}{original dataset with decision made for each observation}
  }
 }

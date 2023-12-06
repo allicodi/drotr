@@ -7,50 +7,71 @@
 #' @export
 print.otr_results <- function(x, ...){
 
-  tmp <- data.frame(
-    c(x$overall_results$aiptw_a_1, x$overall_results$aiptw_a_0, x$overall_results$treatment_effect),
-    c(x$overall_results$se_aiptw_a_1, x$overall_results$se_aiptw_a_0, x$overall_results$se_treatment_effect),
-    c(x$overall_results$aiptw_a_1 - 1.96*x$overall_results$se_aiptw_a_1,
-      x$overall_results$aiptw_a_0 - 1.96*x$overall_results$se_aiptw_a_0,
-      x$overall_results$treatment_effect - 1.96*x$overall_results$se_treatment_effect),
-    c(x$overall_results$aiptw_a_1 + 1.96*x$overall_results$se_aiptw_a_1,
-      x$overall_results$aiptw_a_0 + 1.96*x$overall_results$se_aiptw_a_0,
-      x$overall_results$treatment_effect + 1.96*x$overall_results$se_treatment_effect)
-  )
+  threshold_names <- grep("^threshold", names(x), value=TRUE)
 
-  row_names <- c("E[Y(d) | d(Z) = 1]", "E[Y(0) | d(Z) = 1]", "E[Y(0) - Y(1)]")
-  col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
+  for(t in 1:length(threshold_names)){
+    threshold <- threshold_names[t]
 
-  rownames(tmp) <- row_names
-  colnames(tmp) <- col_names
+    sub <- x[[threshold]]
 
-  # Print header with dashed line
-  cat(paste("                               Results Aggregated Across k = ", max(x$decision_df$k), " folds \n"))
-  cat(paste(rep("-", 100), collapse = ""), "\n")
-  cat(sprintf("%-25s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
-  cat(paste(rep("-", 100), collapse = ""), "\n")
+    tmp <- data.frame(
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1,
+        sub$aggregated_results$subgroup_effect,
+        sub$aggregated_results$treatment_effect),
+      c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$se_treatment_effect),
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect),
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect)
+    )
 
-  for(i in 1:nrow(tmp)){
-    row_to_print <- tmp[i, ]
+    row_names <- c("E[Y(d) | d(Z) = 1]",
+                   "E[Y(0) | d(Z) = 1]",
+                   "E[d(Z) = 1]",
+                   "E[Y(d) - Y(0) | d(Z) = 1]",
+                   "E[Y(d) - Y(0)]")
 
-    # Adjust the widths as needed
-    formatted_row <- sprintf("%-25s%-20s%-20s%-20s%-20s\n",
-                             row.names(row_to_print),
-                             round(row_to_print[1],4),
-                             round(row_to_print[2],4),
-                             round(row_to_print[3],4),
-                             round(row_to_print[4],4))
+    col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
-    # Print the formatted row
-    cat(paste(formatted_row))
+    rownames(tmp) <- row_names
+    colnames(tmp) <- col_names
+
+    # Print header with dashed line
+    cat(paste("                      Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
+    cat(paste(rep("-", 105), collapse = ""), "\n")
+    cat(sprintf("%-30s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+    cat(paste(rep("-", 105), collapse = ""), "\n")
+
+    for(i in 1:nrow(tmp)){
+      row_to_print <- tmp[i, ]
+
+      # Adjust the widths as needed
+      formatted_row <- sprintf("%-30s%-20s%-20s%-20s%-20s\n",
+                               row.names(row_to_print),
+                               round(row_to_print[1],4),
+                               round(row_to_print[2],4),
+                               round(row_to_print[3],4),
+                               round(row_to_print[4],4))
+
+      # Print the formatted row
+      cat(paste(formatted_row))
+    }
+
+    cat(paste("\nCovariates used in decision rule: ", paste(x$Z_list, collapse = ", "), "\n\n"))
+
   }
-
-  decision_df <- x$decision_df
-  prop_treated <- sum(decision_df$decision) / nrow(decision_df)
-
-  cat(paste("\nProportion treated under OTR: ", round(prop_treated, 4)))
-
-  cat(paste("\nCovariates used in decision rule: ", paste(x$Z_list, collapse = ", ")))
 
   invisible(tmp)
 
