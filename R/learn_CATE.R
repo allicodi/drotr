@@ -10,7 +10,7 @@
 #' @import stats
 #' @export
 #'
-#' @returns SuperLearner model (discrete) for CATE
+#' @returns SuperLearner model for CATE
 learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
 
   # if pid not in df, make pid index
@@ -57,12 +57,13 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE){
   Z <- df[,Z_list, drop = FALSE]
   CATE_hat <- df$CATE_hat
 
-  # discrete super learner final model for interpretability
+
   CATE_hat_model <- SuperLearner::SuperLearner(Y = CATE_hat, X = Z, family = stats::gaussian(),
                                  cvControl = list(V=10), SL.library = sl.library.CATE)
 
-  discrete_super_learner_idx <- which.min(CATE_hat_model$cvRisk)
-  CATE_hat_discrete_super_learner_model <- CATE_hat_model$fitLibrary[[discrete_super_learner_idx]]
+  # discrete super learner final model for interpretability
+  # discrete_super_learner_idx <- which.min(CATE_hat_model$cvRisk)
+  # CATE_hat_discrete_super_learner_model <- CATE_hat_model$fitLibrary[[discrete_super_learner_idx]]
 
-  return(CATE_hat_discrete_super_learner_model)
+  return(CATE_hat_model)
 }
