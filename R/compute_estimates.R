@@ -17,10 +17,10 @@
 #'
 #' @returns
 #' \describe{
-#'  List of objects of class `threshold_results`. Each object contains the following for a given threshold:
+#'  List of objects of class `Results`. Each object contains the following for a given threshold:
 #'  \item{\code{aggregated_results}}{dataframe of overall results aggregated across `k` folds for given threshold}
 #'  \item{\code{k_fold_results}}{list of results by fold for given threshold}
-#'  \item{\code{decision_df}}{original dataset with decision made for each observation for given threshold}
+#'  \item{\code{decision_df}}{original dataset with decision made for each observation at a given threshold}
 #'  }
 compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                               k_fold_assign_and_CATE,
@@ -136,7 +136,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                               k_fold_results = k_fold_results,
                               decision_df = decision_df)
 
-    class(threshold_results) <- "threshold_results"
+    class(threshold_results) <- "Results"
 
     results_list_threshold[[t_idx]] <- threshold_results
 

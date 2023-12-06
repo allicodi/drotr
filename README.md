@@ -62,44 +62,110 @@ The function `estimate_OTR` will assign treatment to all observations in `df` wi
   # List of covariates to use to estimate CATE model 
   Z_list <- c("W1")
   
-  decision_threshold <- 0  # clinically relevance threshold for treatment effect (>=0 if desired outcome Y, negative in undesirable)
+  # Clinically relevant threshold for treatment effect
+  # Zero will default to positive (desirable) outcome variable Y. If Y is undesirable outcome, set to "-0"
+  decision_threshold <- "0"  
   
-  results <- estimate_OTR(df = df,
-                          Y_name = "Y",
-                          A_name = "A",
-                          W_list = W_list,
-                          Z_list = Z_list,
-                          sl.library.CATE = sl.library.CATE,
-                          sl.library.outcome = sl.library.outcome,
-                          sl.library.treatment = sl.library.treatment,
-                          sl.library.missingness = sl.library.missingness,
-                          threshold = 0,
-                          k_folds = 2,
-                          ps_trunc_level = 0.01,
-                          outcome_type = "gaussian")
-                          
-    overall_results <- results$overall_results      # dataframe of overall results aggregated across `k` folds
-    EY_A1_d1 <- results$EY_A1_d1                    # dataframe of AIPTW for optimally treated in each fold
-    EY_A0_d1 <- results$EY_A0_d1                    # dataframe of AIPTW for not treating those who should be treated under decision rule in each fold
-    treatment_effect <- results$treatment_effect    # dataframe of treatment effect in each fold
-    decision_df <- results$decision_df              # original dataset with decision made for each observation
-    CATE_models <- results$CATE_models              # CATE model used in each fold
+  otr_estimate <- estimate_OTR(df = df,
+                                Y_name = "Y",
+                                A_name = "A",
+                                W_list = W_list,
+                                Z_list = Z_list,
+                                id_name = NULL, 
+                                sl.library.CATE = sl.library.CATE,
+                                sl.library.outcome = sl.library.outcome,
+                                sl.library.treatment = sl.library.treatment,
+                                sl.library.missingness = sl.library.missingness,
+                                threshold = decision_threshold,
+                                k_folds = 2,
+                                ps_trunc_level = 0.01,
+                                outcome_type = "gaussian")
+    
+  otr_estimate
 
 ```
 
-Printing results will display estimates and 95% confidence intervals for each AIPTW estimate and the overall treatment effect under the optimal treatment rule. It will also provide the proportion of the dataset treated under the OTR:
+Printing the `otr_estimate` results will display estimates and 95% confidence intervals for each AIPTW estimate, the proportion of patients treated under the decision rule, the subgroup treatment effect, and the overall treatment effect:
 
 ```
-                               Results Aggregated Across k =  2  folds 
----------------------------------------------------------------------------------------------------- 
-                         Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
----------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]       2.5607              0.0428              2.4768              2.6445              
-E[Y(0) | d(Z) = 1]       1.7601              0.0369              1.6878              1.8324              
-E[Y(0) - Y(1)]           0.4                 0.0227              0.3554              0.4445              
+                               Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            2.5842              0.0438              2.4984              2.67                
+E[Y(0) | d(Z) = 1]            1.7756              0.0369              1.7032              1.8479              
+E[d(Z) = 1]                   0.519               0.0071              0.5051              0.5329              
+E[Y(d) - Y(0) | d(Z) = 1]     0.8087              0.043               0.7243              0.893               
+E[Y(d) - Y(0)]                0.4195              0.023               0.3743              0.4646              
 
-Proportion treated under OTR:  0.5012
+Covariates used in decision rule:  W1
 
+```
+
+A user could input a vector of different thresholds for which to identify treatment effects. 
+
+A positive threshold indicates a desirable outcome (treat if CATE > threshold), and a negative threshold indicates an undesirable outcome (treat if CATE< threshold). A threshold of 0 defaults to positive outcome, but "-0" (as a string) can be specified to treat if CATE < threshold. 
+
+```
+  # Thresholds to test for treatment effect
+  # Zero will default to positive (desirable) outcome variable Y. If Y is undesirable outcome, set to "-0"
+  # Let's now assume Y is undesirable outcome in our simulation data
+  decision_thresholds <- c("-0", "-0.05", "-0.10")  
+  
+  otr_estimate <- estimate_OTR(df = df,
+                                Y_name = "Y",
+                                A_name = "A",
+                                W_list = W_list,
+                                Z_list = Z_list,
+                                id_name = NULL, 
+                                sl.library.CATE = sl.library.CATE,
+                                sl.library.outcome = sl.library.outcome,
+                                sl.library.treatment = sl.library.treatment,
+                                sl.library.missingness = sl.library.missingness,
+                                threshold = decision_thresholds,
+                                k_folds = 2,
+                                ps_trunc_level = 0.01,
+                                outcome_type = "gaussian")
+    
+  otr_estimate
+
+```
+```
+                      Results for  threshold =  -0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            2.5863              0.0439              2.5004              2.6723              
+E[Y(0) | d(Z) = 1]            1.7706              0.0368              1.6985              1.8426              
+E[d(Z) = 1]                   0.5182              0.0071              0.5043              0.5321              
+E[Y(d) - Y(0) | d(Z) = 1]     0.8158              0.0429              0.7317              0.8999              
+E[Y(d) - Y(0)]                0.4227              0.023               0.3776              0.4678              
+
+Covariates used in decision rule:  W1 
+
+                      Results for  threshold =  -0.05  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            2.5409              0.0431              2.4565              2.6253              
+E[Y(0) | d(Z) = 1]            1.7522              0.0362              1.6812              1.8232              
+E[d(Z) = 1]                   0.5348              0.0071              0.521               0.5486              
+E[Y(d) - Y(0) | d(Z) = 1]     0.7887              0.0422              0.706               0.8714              
+E[Y(d) - Y(0)]                0.4218              0.0233              0.3762              0.4673              
+
+Covariates used in decision rule:  W1 
+
+                      Results for  threshold =  -0.10  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            2.477               0.0425              2.3937              2.5604              
+E[Y(0) | d(Z) = 1]            1.7291              0.0356              1.6592              1.799               
+E[d(Z) = 1]                   0.5552              0.007               0.5414              0.569               
+E[Y(d) - Y(0) | d(Z) = 1]     0.748               0.0415              0.6665              0.8294              
+E[Y(d) - Y(0)]                0.4152              0.0237              0.3688              0.4616              
+
+Covariates used in decision rule:  W1 
 ```
 
 Alternatively, nuisance models could be pre-fit for a given set of covariates `W`. This is helpful for cycling through multiple potential decision rules (multiple sets of `Z`).
@@ -117,15 +183,15 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
   # List of covariates to use to estimate Nuisance models
   W_list <- c("W1", "W2")
   
-  # List of covariates to use to estimate CATE model 
-  Z_list <- c("W1")
-  
-  decision_threshold <- 0  # clinically relevance threshold for treatment effect (>=0 if desired outcome Y, negative in undesirable)
+  # Clinically relevant threshold for treatment effect
+  # Zero will default to positive (desirable) outcome variable Y. If Y is undesirable outcome, set to "-0"
+  decision_threshold <- 0  
   
   nuisance_output <- learn_nuisance(df = df,
                                     Y_name = "Y",
                                     A_name = "A",
                                     W_list = W_list,
+                                    id_name = NULL, 
                                     sl.library.outcome = sl.library.outcome,
                                     sl.library.treatment = sl.library.treatment,
                                     sl.library.missingness = sl.library.missingness,
@@ -136,6 +202,7 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
   nuisance_models <- nuisance_output$nuisance_models
   k_fold_assign_and_CATE <- nuisance_output$k_fold_assign_and_CATE
   
+  # List of different sets of covariates to use to estimate CATE model 
   Z_lists <- list(c("W1"), c("W2"), c("W1", "W2"))
   results_list <- vector(mode = "list", length = length(Z_lists))
   
@@ -147,6 +214,7 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
                           A_name = "A",
                           W_list = W_list,
                           Z_list = Z_list,
+                          id_name = NULL,
                           sl.library.CATE = sl.library.CATE,
                           nuisance_models = nuisance_models,
                           k_fold_assign_and_CATE = k_fold_assign_and_CATE,
@@ -159,4 +227,53 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
     
   }
   
+  results_list
+  
 ```
+
+```
+[[1]]
+                      Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            2.5873              0.0438              2.5013              2.6732              
+E[Y(0) | d(Z) = 1]            1.7814              0.0366              1.7097              1.8532              
+E[d(Z) = 1]                   0.5186              0.0071              0.5048              0.5324              
+E[Y(d) - Y(0) | d(Z) = 1]     0.8058              0.043               0.7215              0.8901              
+E[Y(d) - Y(0)]                0.417               0.023               0.372               0.462               
+
+Covariates used in decision rule:  W1 
+
+
+[[2]]
+                      Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            1.5859              0.0493              1.4893              1.6826              
+E[Y(0) | d(Z) = 1]            1.5175              0.0341              1.4507              1.5842              
+E[d(Z) = 1]                   0.704               0.0049              0.6944              0.7136              
+E[Y(d) - Y(0) | d(Z) = 1]     0.0685              0.0436              -0.017              0.154               
+E[Y(d) - Y(0)]                0.0231              0.0276              -0.0309             0.0771              
+
+Covariates used in decision rule:  W2 
+
+
+[[3]]
+                      Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+E[Y(d) | d(Z) = 1]            2.6106              0.0437              2.5249              2.6962              
+E[Y(0) | d(Z) = 1]            1.8021              0.0366              1.7304              1.8738              
+E[d(Z) = 1]                   0.5168              0.0071              0.503               0.5306              
+E[Y(d) - Y(0) | d(Z) = 1]     0.8084              0.0431              0.7239              0.893               
+E[Y(d) - Y(0)]                0.4168              0.0229              0.3718              0.4618              
+
+Covariates used in decision rule:  W1, W2 
+```
+
+Aggregated and individual level decisions by threshold and fold can be accessed through the results object. Models for outcome, treatment, missingness, and CATE by fold are also returned in the results object. 
+
+

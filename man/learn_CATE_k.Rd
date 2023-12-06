@@ -14,7 +14,7 @@ learn_CATE_k(df, Z_list, sl.library.CATE)
 \item{sl.library.CATE}{character vector of SuperLearner libraries to use to fit the CATE model}
 }
 \value{
-SuperLearner model (discrete) for CATE
+SuperLearner model for CATE
 }
 \description{
 Function to learn model for CATE in kth fold

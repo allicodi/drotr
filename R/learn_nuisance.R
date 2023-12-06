@@ -63,12 +63,6 @@ learn_nuisance <- function(df,
 
     k_fold_nuisance[[k]] <- output_learn[[1]]
 
-
-    # # if "pid" not in data, use index as pid
-    # if(!("pid" %in% names(df_learn))){
-    #   df_learn$pid <- rownames(df_learn)
-    # }
-
     # note here k is actually denoting the fold that was left out of the training set
     k_fold_assign_and_CATE <- rbind(k_fold_assign_and_CATE, data.frame(id = as.numeric(df_learn$id),
                                                                        k = k,

@@ -10,7 +10,7 @@
 #' @import stats
 #' @export
 #'
-#' @returns SuperLearner model for CATE
+#' @returns list containing SuperLearner model for CATE in each fold
 learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
 
   k_folds <- max(k_fold_assign_and_CATE$k)
@@ -43,7 +43,7 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
 #' @param Z_list character vector containing names of variables in df to use to fit CATE model (variables used in treatment rule)
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
 #'
-#' @returns SuperLearner model (discrete) for CATE
+#' @returns SuperLearner model for CATE
 #'
 #' @keywords internal
 learn_CATE_k <- function(df, Z_list, sl.library.CATE){

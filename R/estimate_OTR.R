@@ -24,11 +24,8 @@
 #'
 #' @returns
 #' \describe{
-#'  \item{\code{overall_results}}{dataframe of overall results aggregated across `k` folds}
-#'  \item{\code{EY_A1_d1}}{dataframe of AIPTW for optimally treated in each fold}
-#'  \item{\code{EY_A0_d1}}{dataframe of AIPTW for not treating those who should be treated under decision rule in each fold}
-#'  \item{\code{treatment_effect}}{dataframe of treatment effect in each fold}
-#'  \item{\code{decision_df}}{original dataset with decision made for each observation}
+#'  \item{\code{results}}{list of `Results` objects for each threshold. See description of `Results` object in `compute_estimates`}
+#'  \item{\code{nuisance_models}}{list of `Nuisance` objects containing outcome, treatment, and missingness models used in each fold}
 #'  \item{\code{CATE_models}}{CATE model used in each fold}
 #'  \item{\code{Z_list}}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 #'  }
@@ -95,6 +92,9 @@ estimate_OTR <- function(df,
                                       k_fold_assign_and_CATE,
                                       nuisance_models, CATE_models,
                                       threshold, ps_trunc_level)
+
+  results <- list(results)
+  names(results) <- "results"
 
   results$nuisance_models <- nuisance_models
   results$CATE_models <- CATE_models

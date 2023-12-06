@@ -7,12 +7,14 @@
 #' @export
 print.otr_results <- function(x, ...){
 
-  threshold_names <- grep("^threshold", names(x), value=TRUE)
+  res <- x$results
+
+  threshold_names <- grep("^threshold", names(res), value=TRUE)
 
   for(t in 1:length(threshold_names)){
     threshold <- threshold_names[t]
 
-    sub <- x[[threshold]]
+    sub <- res[[threshold]]
 
     tmp <- data.frame(
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1,
