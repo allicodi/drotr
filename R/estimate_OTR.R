@@ -96,6 +96,7 @@ estimate_OTR <- function(df,
                                       nuisance_models, CATE_models,
                                       threshold, ps_trunc_level)
 
+  results$nuisance_models <- nuisance_models
   results$CATE_models <- CATE_models
   results$Z_list <- Z_list
 

@@ -17,30 +17,17 @@
 #'
 #' @returns
 #' \describe{
-#'  \item{\code{overall_results}}{dataframe of overall results aggregated across `k` folds}
-#'  \item{\code{k_fold_results}}{list of results by fold}
-#'  \item{\code{decision_df}}{original dataset with decision made for each observation}
+#'  List of objects of class `threshold_results`. Each object contains the following for a given threshold:
+#'  \item{\code{aggregated_results}}{dataframe of overall results aggregated across `k` folds for given threshold}
+#'  \item{\code{k_fold_results}}{list of results by fold for given threshold}
+#'  \item{\code{decision_df}}{original dataset with decision made for each observation for given threshold}
 #'  }
 compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                               k_fold_assign_and_CATE,
                               nuisance_models, CATE_models,
                               threshold, ps_trunc_level = 0.01){
 
-  # if pid not in df, make pid index
-  # if (!"pid" %in% colnames(df)) {
-  #   df$pid <- as.numeric(rownames(df))
-  # }
-
   k_folds <- max(k_fold_assign_and_CATE$k)
-
-  # length k_folds * length(threshold)
-  # k_fold_EY_Ad_dZ1 <- list()
-  # k_fold_EY_A0_dZ1 <- list()
-  # k_fold_E_dZ1 <- list()
-  # k_fold_subgroup_effect <- list()
-  # k_fold_treatment_effect <- list()
-  # k_fold_inf_fn_matrix <- list()
-  # k_fold_decisions <- data.frame()
 
   # List to hold results at each threshold
   results_list_threshold <- vector("list", length = length(threshold))
@@ -91,13 +78,6 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       compute_est_output <- compute_estimate_k(df_est, Y_name, A_name, W_list, Z_list,
                                                CATE_model, nuisance_model,
                                                sign, t, ps_trunc_level)
-
-      # k_fold_EY_Ad_dZ1 <- c(k_fold_EY_Ad_dZ1, list(compute_est_output[[1]]))
-      # k_fold_EY_A0_dZ1 <- c(k_fold_EY_A0_dZ1, list(compute_est_output[[2]]))
-      # k_fold_E_dZ1 <- c(k_fold_E_dZ1, list(compute_est_output[[3]]))
-      # k_fold_subgroup_effect <- c(k_fold_subgroup_effect, list[[4]])
-      # k_fold_treatment_effect <- c(k_fold_treatment_effect, list(compute_est_output[[5]]))
-      # k_fold_inf_fn_matrix <- c(k_fold_inf_fn_matrix, list(compute_est_output[[6]]))
 
       k_fold_EY_Ad_dZ1[[k]] <- compute_est_output[[1]]
       k_fold_EY_A0_dZ1[[k]] <- compute_est_output[[2]]
@@ -152,9 +132,13 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 
     decision_df <- k_fold_decisions
 
-    results_list_threshold[[t_idx]] <- list(aggregated_results = aggregated_results,
-                                            k_fold_results = k_fold_results,
-                                            decision_df = decision_df)
+    threshold_results <- list(aggregated_results = aggregated_results,
+                              k_fold_results = k_fold_results,
+                              decision_df = decision_df)
+
+    class(threshold_results) <- "threshold_results"
+
+    results_list_threshold[[t_idx]] <- threshold_results
 
   }
 
@@ -226,9 +210,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   ### Step 2: Find P(d(Z) = 1) by taking mean(d(Z)) created in step 1
   mean_dZ <- mean(d_pred)
 
-  #
+  # ---------------------------------------------------------------------------
   # Helper function to calculate AIPTW
-  #
+  # ---------------------------------------------------------------------------
   calc_aiptw <- function(a, mean_dZ, outcome_model, treatment_model, missingness_model){
 
     ### Step 3: get 1-prediction from missingness model for everyone in df_est P(Delta = 1 | ...)

@@ -40,9 +40,10 @@ compute_estimates(
 }
 \value{
 \describe{
- \item{\code{overall_results}}{dataframe of overall results aggregated across `k` folds}
- \item{\code{k_fold_results}}{list of results by fold}
- \item{\code{decision_df}}{original dataset with decision made for each observation}
+ List of objects of class `threshold_results`. Each object contains the following for a given threshold:
+ \item{\code{aggregated_results}}{dataframe of overall results aggregated across `k` folds for given threshold}
+ \item{\code{k_fold_results}}{list of results by fold for given threshold}
+ \item{\code{decision_df}}{original dataset with decision made for each observation for given threshold}
  }
 }
 \description{
