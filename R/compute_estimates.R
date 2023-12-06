@@ -196,9 +196,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   # d_pred <- ifelse(CATE_pred < -abs(threshold), 1, 0)
 
   if(sign == "-"){
-    d_pred <- ifelse(CATE_pred < threshold, 1, 0)
+    d_pred <- ifelse(CATE_pred$pred < threshold, 1, 0)
   } else {
-    d_pred <- ifelse(CATE_pred > threshold, 1, 0)
+    d_pred <- ifelse(CATE_pred$pred > threshold, 1, 0)
   }
 
   # idxes of observations that are recommended treatment (d_pred == 1)
