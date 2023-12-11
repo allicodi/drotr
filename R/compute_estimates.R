@@ -38,7 +38,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     t <- threshold[t_idx]
 
     sign <- substr(t, 1, 1)
-    if(sign != "+" | sign != "-"){ # assume if user did not specify sign, it is positive
+    if(sign != "+" & sign != "-"){ # assume if user did not specify sign, it is positive
       sign <- "+"
     }
 
