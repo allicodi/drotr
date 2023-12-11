@@ -14,7 +14,8 @@ Depends: R (>= 3.0.0)
 Imports: 
     SuperLearner, 
     dplyr,
-    stats
+    stats,
+    glue
 Suggests: 
     knitr,
     rmarkdown
