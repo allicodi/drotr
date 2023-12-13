@@ -123,6 +123,9 @@ compare.otr_results <- function(res_rule1, res_rule2, threshold1, threshold2, ru
   inf_fn_matrix <- cbind(inf_fns_rule1, inf_fns_rule2)
   inf_fn_matrix <- apply(inf_fn_matrix, 2, as.numeric)
 
+  # If any of the influence functions are NA, drop those rows
+  inf_fn_matrix <- inf_fn_matrix[!rowSums(is.na(inf_fn_matrix)),]
+
   # get covariance matrix
   cov_matrix <- stats::cov(inf_fn_matrix) / dim(inf_fn_matrix)[1]
 
@@ -182,8 +185,6 @@ print.otr_comparison <- function(x, ...){
     rule1_type <- "Treatment Effect E[Y(d) - Y(0)]"
   } else rule1_type <- "Subgroup Effect E[Y(d) - Y(0) | d(Z) = 1]"
 
-  Z_list1 <- paste(x$Z_list1, collapse = ", ")
-
   threshold1 <- x$threshold_1
 
   rule1 <- paste(rule1_type, " for rule 1 at threshold = ", threshold1)
@@ -192,8 +193,6 @@ print.otr_comparison <- function(x, ...){
   if(x$rule2_comp == "te" | x$rule2_comp == "treatment effect"){
     rule2_type <- "Treatment Effect E[Y(d) - Y(0)]"
   } else rule2_type <- "Subgroup Effect E[Y(d) - Y(0) | d(Z) = 1]"
-
-  Z_list2 <- paste(x$Z_list2, collapse = ", ")
 
   threshold2 <- x$threshold_2
 
@@ -212,8 +211,8 @@ print.otr_comparison <- function(x, ...){
               round(x$expected_val_of_comparison - 1.96*sqrt(x$var_of_comparison), 4),
               round(x$expected_val_of_comparison + 1.96*sqrt(x$var_of_comparison), 4)))
 
-  cat(paste("\n Rule 1: Z = ", Z_list1))
-  cat(paste("\n Rule 2: Z = ", Z_list2))
+  cat(paste("\n Rule 1: Z = ", x$Z_list_1))
+  cat(paste("\n Rule 2: Z = ", x$Z_list_2))
 
 
 }

@@ -303,3 +303,23 @@ results_object
 ```
 
 Aggregated and individual level decisions by threshold and fold can be accessed through the results object. Models for outcome, treatment, missingness, and CATE by fold are also returned in the results object. More details about components of results object can be found in roxygen help documentation.
+
+The compare.otr_results function can be used to compare treatment effects and subgroup effects across treatment rules and thresholds.
+
+```
+compare.otr_results(results_list[[1]], results_list[[2]], 0, 0, "te", "te")
+```
+
+```
+ Treatment Effect E[Y(d) - Y(0)]  for rule 1 at threshold =  0 
+ vs 
+ Treatment Effect E[Y(d) - Y(0)]  for rule 2 at threshold =  0 
+--------------------------------------------------------------------------------------------------------- 
+                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------- 
+Rule 1 - Rule 2               0.4364              0.0514              0.3357              0.5371              
+
+ Rule 1: Z =  W1
+ Rule 2: Z =  W2
+ 
+```
