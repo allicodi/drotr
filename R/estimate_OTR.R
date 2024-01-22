@@ -54,7 +54,7 @@ estimate_OTR <- function(df,
   if(is.null(id_name)){
     df$id <- rownames(df)
   } else {
-    df$id <- df$id_name
+    df$id <- df[[id_name]]
   }
 
   # --------------------------------------------------------------------------

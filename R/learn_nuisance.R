@@ -37,7 +37,7 @@ learn_nuisance <- function(df,
   if(is.null(id_name)){
     df$id <- rownames(df)
   } else {
-    df$id <- df$id_name
+    df$id <- df[[id_name]]
   }
 
   # split into k equal sized folds and randomly shuffle
