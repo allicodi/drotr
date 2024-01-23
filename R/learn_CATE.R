@@ -17,6 +17,9 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
   k_fold_CATE_models <- vector(mode = "list", length = k_folds)
 
   for(k in 1:k_folds){
+
+    # TEST
+
     # get patient ids that are in the kth fold
     kth_subset_ids <- k_fold_assign_and_CATE$id[k_fold_assign_and_CATE$k == k]
 
