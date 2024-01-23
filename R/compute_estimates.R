@@ -53,17 +53,17 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_decisions <- data.frame()
 
     for(k in 1:k_folds){
-      # get patient ids that are in the kth fold
+      # get patient ids that are NOT in the kth fold
       kth_subset_ids <- k_fold_assign_and_CATE$id[k_fold_assign_and_CATE$k == k]
 
       # estimate CATE hat model kth fold (testing data)
-      df_est <- df[df$id %in% kth_subset_ids, , drop = FALSE]
+      df_est <- df[!(df$id %in% kth_subset_ids), , drop = FALSE]
 
       # join CATEhat with data by id
-      df_est$id <- as.character(df_est$id)
-      k_fold_assign_and_CATE$id <- as.character(k_fold_assign_and_CATE$id)
+      #df_est$id <- as.character(df_est$id)
+      #k_fold_assign_and_CATE$id <- as.character(k_fold_assign_and_CATE$id)
 
-      df_est <- dplyr::left_join(df_est, k_fold_assign_and_CATE, by = "id")
+      #df_est <- dplyr::left_join(df_est, k_fold_assign_and_CATE, by = "id")
 
       #get models used in kth fold
       nuisance_model <- nuisance_models[[k]]
@@ -91,6 +91,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_decisions <- rbind(k_fold_decisions, data.frame(id = kth_decision_df$id,
                                                              k = k,
                                                              threshold = t,
+                                                             CATE_pred = kth_decision_df$CATE_pred,
                                                              decision = kth_decision_df$d_pred))
     }
 
@@ -205,7 +206,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   idx_sub <- which(d_pred == 1)
 
   # add decisions to kth fold dataframe to return later on
-  df_decisions <- cbind(df, d_pred)
+  df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred$pred))
+
+
 
   ### Step 2: Find P(d(Z) = 1) by taking mean(d(Z)) created in step 1
   mean_dZ <- mean(d_pred)

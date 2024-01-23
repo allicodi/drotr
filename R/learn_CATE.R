@@ -17,20 +17,21 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
   k_fold_CATE_models <- vector(mode = "list", length = k_folds)
 
   for(k in 1:k_folds){
+    # estimate CATE hat model on all folds except kth (training data)
 
-    # TEST
-
-    # get patient ids that are in the kth fold
+    # get patient ids that are NOT in the kth fold
     kth_subset_ids <- k_fold_assign_and_CATE$id[k_fold_assign_and_CATE$k == k]
 
-    # estimate CATE hat model on all folds except kth (training data)
-    df_learn <- df[!(df$id %in% kth_subset_ids), , drop = FALSE]
+    # get dataframe of patients NOT in kth fold (training data)
+    df_learn <- df[(df$id %in% kth_subset_ids), , drop = FALSE]
+
+    # get CATE hats from training set
+    k_fold_assign_and_CATE_sub <- k_fold_assign_and_CATE[k_fold_assign_and_CATE$k == k,]
 
     # join CATEhat with data by id
     df_learn$id <- as.character(df_learn$id)
-    k_fold_assign_and_CATE$id <- as.character(k_fold_assign_and_CATE$id)
-
-    df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE, by = "id")
+    k_fold_assign_and_CATE_sub$id <- as.character(k_fold_assign_and_CATE_sub$id)
+    df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE_sub, by = "id")
 
     k_fold_CATE_models[[k]] <- learn_CATE_k(df_learn, Z_list, sl.library.CATE)
   }
