@@ -59,12 +59,6 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       # estimate CATE hat model kth fold (testing data)
       df_est <- df[!(df$id %in% kth_subset_ids), , drop = FALSE]
 
-      # join CATEhat with data by id
-      #df_est$id <- as.character(df_est$id)
-      #k_fold_assign_and_CATE$id <- as.character(k_fold_assign_and_CATE$id)
-
-      #df_est <- dplyr::left_join(df_est, k_fold_assign_and_CATE, by = "id")
-
       #get models used in kth fold
       nuisance_model <- nuisance_models[[k]]
       CATE_model <- CATE_models[[k]]
