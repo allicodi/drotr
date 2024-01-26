@@ -35,7 +35,7 @@ learn_nuisance <- function(df,
 
   # if id_name not specified, make index id
   if(is.null(id_name)){
-    df$id <- rownames(df)
+    df$id <- rownames(df) #fix this, don't use rownames, just assign id
   } else {
     df$id <- df[[id_name]]
   }
@@ -156,7 +156,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   missingness_obs_complete <- stats::predict(deltahat, data.frame(A, W), type = 'response')
   missingness_obs_complete$pred[missingness_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
 
-  # f. Estimate CATE
+  # f. Estimate CATE (pseudo-outcome)
   p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (tm_obs_complete$pred * (1-missingness_obs_complete$pred))
   p2 <- Y - om_obs$pred
   p2 <- ifelse(is.na(p2), 0, p2)

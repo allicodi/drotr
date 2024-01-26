@@ -31,9 +31,9 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE){
     # join CATEhat with data by id
     df_learn$id <- as.character(df_learn$id)
     k_fold_assign_and_CATE_sub$id <- as.character(k_fold_assign_and_CATE_sub$id)
-    df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE_sub, by = "id")
+    df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE_sub, by = "id") # don't use dplyr
 
-    k_fold_CATE_models[[k]] <- learn_CATE_k(df_learn, Z_list, sl.library.CATE)
+    k_fold_CATE_models[[k]] <- learn_CATE_k(df_learn, Z_list, sl.library.CATE) #pass in  named arguments
   }
 
   return(k_fold_CATE_models)
