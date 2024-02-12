@@ -4,7 +4,7 @@
 \alias{learn_CATE_k}
 \title{Function to learn model for CATE in kth fold}
 \usage{
-learn_CATE_k(df, Z_list, sl.library.CATE)
+learn_CATE_k(df, Z_list, sl.library.CATE, validRows)
 }
 \arguments{
 \item{df}{dataframe containing training dataset}
@@ -12,6 +12,8 @@ learn_CATE_k(df, Z_list, sl.library.CATE)
 \item{Z_list}{character vector containing names of variables in df to use to fit CATE model (variables used in treatment rule)}
 
 \item{sl.library.CATE}{character vector of SuperLearner libraries to use to fit the CATE model}
+
+\item{validRows}{SuperLearner validRows row assigments from kth fold}
 }
 \value{
 SuperLearner model for CATE

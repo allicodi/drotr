@@ -110,19 +110,6 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
                          outcome_type,
                          ps_trunc_level = 0.01){
 
-  # SuperLearner(... , control = list(saveCVFitLibrary = TRUE))
-  # fit$validRows for assigments
-  # get validrows from outcome, then pass validrows into each
-
-  # for v in 1:V
-  #   retrive vth trainings sample specific fits from $cvFitLibrary
-  #   get predictions that i need to make pseudo-oucome from these models
-  #   predict from each of those models on the data in  validRows[[v]]
-  # combine predictions from all models into a single prediction using the SL.weights from the fit
-  # build ensemble model ourself
-
-  # pass same validrows to the CATE model
-
   # Full set of observations
   I_Y <- ifelse(is.na(df[[Y_name]]), 1, 0) #indicator for Y missing
   Y <- df[[Y_name]]
@@ -147,49 +134,159 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   }
 
   validRowsComplete <- muhat$validRows
+  muhat.cvFitLibrary <- muhat$cvFitLibrary
+  muhat.coef <- muhat$coef
 
   ### 2 - Fit treatment model ###
 
   pihat <- SuperLearner::SuperLearner(Y = A_vec, X = W, family = stats::binomial(),
-                        cvControl = list(V=10), SL.library = sl.library.treatment)
+                        cvControl = list(V=10), SL.library = sl.library.treatment, control = list(saveCVFitLibrary = TRUE))
 
   validRowsAll <- pihat$validRows
+  pihat.cvFitLibrary <- pihat$cvFitLibrary
+  pihat.coef <- pihat$coef
 
   ### 3 - Fit missingness model ###
 
   deltahat <- SuperLearner::SuperLearner(Y = I_Y, X = data.frame(A, W), family = stats::binomial(),
-                              cvControl = list(V=10, validRows = validRowsAll), SL.library = sl.library.missingness)
+                              cvControl = list(V=10, validRows = validRowsAll), SL.library = sl.library.missingness, control = list(saveCVFitLibrary = TRUE))
+
+  deltahat.cvFitLibrary <- deltahat$cvFitLibrary
+  deltahat.coef <- deltahat$coef
 
   ### 4 - Create pseudo-outcome  ###
 
-  # a. get pred from outcome model under obs trt and obs cov (outcome model)
-  om_obs <- stats::predict(muhat, data.frame(A, W), type = 'response')
+  # for v in 1:V
+  #   retrive vth trainings sample specific fits from $cvFitLibrary
+  #   get predictions that i need to make pseudo-oucome from these models
+  #   predict from each of those models on the data in  validRows[[v]]
+  # combine predictions from all models into a single prediction using the SL.weights from the fit
+  # build ensemble model ourself
 
-  # b. predict from trt = 1 and obs cov (outcome model)
-  om_trt1_df <- data.frame(1, W)
-  names(om_trt1_df)[1] <- A_name
-  om_trt1 <- stats::predict(muhat, om_trt1_df, type = 'response')
+  # pass same validrows to the CATE model
 
-  # c. predict from trt = 0 and obs cov (outcome model)
-  om_trt0_df <- data.frame(0, W)
-  names(om_trt0_df)[1] <- A_name
-  om_trt0 <- stats::predict(muhat, om_trt0_df, type = 'response')
+  muhat_obs_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
+  muhat_1_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
+  muhat_0_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
+  pihat_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
+  deltahat_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
 
-  # d. predict treatment from obs cov & truncate observations that are too small (treatment model)
-  tm_obs_complete <- stats::predict(pihat, data.frame(W), type = 'response')
-  tm_obs_complete$pred[tm_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
+  for(v in 1:10){
+    muhat.v <- muhat.cvFitLibrary[[v]]
+    pihat.v <- pihat.cvFitLibrary[[v]]
+    deltahat.v <- deltahat.cvFitLibrary[[v]]
 
-  # e. predict missingness under obs cov, obs trt (missingness model)
-  missingness_obs_complete <- stats::predict(deltahat, data.frame(A, W), type = 'response')
-  missingness_obs_complete$pred[missingness_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
+    # should I still be predicting on all of them? or just the ones in the vth fold
+    # also muhat was fit using just complete, but we're predicting using all of them?
+
+    # a. get pred from outcome model under obs trt and obs cov (outcome model)
+    muhat_individ_mod <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
+    for(model in 1:length(muhat.v)){
+      muhat.pred <- stats::predict(muhat.v[[model]], data.frame(A, W), type = 'response')
+      muhat_individ_mod[,model] <- muhat.pred
+    }
+
+    om_obs.v <- muhat_individ_mod %*% muhat.coef
+    muhat_obs_matrix[,v] <- om_obs.v
+
+
+    # b. predict from trt = 1 and obs cov (outcome model)
+    om_trt1_df <- data.frame(1, W)
+    names(om_trt1_df)[1] <- A_name
+
+    muhat_individ_mod1 <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
+    for(model in 1:length(muhat.v)){
+      muhat1.pred <- stats::predict(muhat.v[[model]], om_trt1_df, type = 'response')
+      muhat_individ_mod1[,model] <- muhat1.pred
+    }
+
+    om_trt1.v <- muhat_individ_mod1 %*% muhat.coef
+    muhat_1_matrix[,v] <- om_trt1.v
+
+    # c. predict from trt = 0 and obs cov (outcome model)
+    om_trt0_df <- data.frame(0, W)
+    names(om_trt0_df)[1] <- A_name
+
+    muhat_individ_mod0 <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
+    for(model in 1:length(muhat.v)){
+      muhat0.pred <- stats::predict(muhat.v[[model]], om_trt0_df, type = 'response')
+      muhat_individ_mod0[,model] <- muhat0.pred
+    }
+
+    om_trt0.v <- muhat_individ_mod0 %*% muhat.coef
+    muhat_0_matrix[,v] <- om_trt0.v
+
+    # d. predict treatment from obs cov & truncate observations that are too small (treatment model)
+
+    pihat_individ_mod <- matrix(NA, nrow = nrow(df), ncol = length(pihat.v))
+    for(model in 1:length(pihat.v)){
+      pihat.pred <- stats::predict(pihat.v[[model]], data.frame(W), type = 'response')
+      pihat_individ_mod[,model] <- pihat.pred
+    }
+
+    pihat.v <- pihat_individ_mod %*% pihat.coef
+    pihat.v[pihat.v < ps_trunc_level] <- ps_trunc_level
+    pihat_matrix[,v] <- pihat.v
+
+    # e. predict missingness under obs cov, obs trt (missingness model)
+    delta_individ_mod <- matrix(NA, nrow = nrow(df), ncol=length(deltahat.v))
+    for(model in 1:length(deltahat.v)){
+      deltahat.pred <- stats::predict(deltahat.v[[model]], data.frame(A, W), type = 'response')
+      delta_individ_mod[,model] <- deltahat.pred
+    }
+
+    deltahat.v <- delta_individ_mod %*% deltahat.coef
+    deltahat.v[deltahat.v <- ps_trunc_level] <- ps_trunc_level
+    deltahat_matrix[,v] <- deltahat.v
+
+  }
+
+  avg_muhat_obs <- rowMeans(muhat_obs_matrix)
+  avg_muhat_1 <- rowMeans(muhat_1_matrix)
+  avg_muhat_0 <- rowMeans(muhat_0_matrix)
+  avg_pihat_obs <- rowMeans(pihat_matrix)
+  avg_deltahat_obs <- rowMeans(deltahat_matrix)
 
   # f. Estimate CATE (pseudo-outcome)
-  p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (tm_obs_complete$pred * (1-missingness_obs_complete$pred))
-  p2 <- Y - om_obs$pred
+  p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (avg_pihat_obs * (1-avg_deltahat_obs))
+  p2 <- Y - avg_muhat_obs
   p2 <- ifelse(is.na(p2), 0, p2)
-  p3 <- om_trt1$pred - om_trt0$pred
+  p3 <- avg_muhat_1 - avg_muhat_0
 
   CATE_hat <- p1*p2 + p3
+
+#
+#
+# # ------------------------------------------------------------------------
+#
+#   # a. get pred from outcome model under obs trt and obs cov (outcome model)
+#   om_obs <- stats::predict(muhat, data.frame(A, W), type = 'response')
+#
+#   # b. predict from trt = 1 and obs cov (outcome model)
+#   om_trt1_df <- data.frame(1, W)
+#   names(om_trt1_df)[1] <- A_name
+#   om_trt1 <- stats::predict(muhat, om_trt1_df, type = 'response')
+#
+#   # c. predict from trt = 0 and obs cov (outcome model)
+#   om_trt0_df <- data.frame(0, W)
+#   names(om_trt0_df)[1] <- A_name
+#   om_trt0 <- stats::predict(muhat, om_trt0_df, type = 'response')
+#
+#   # d. predict treatment from obs cov & truncate observations that are too small (treatment model)
+#   tm_obs_complete <- stats::predict(pihat, data.frame(W), type = 'response')
+#   tm_obs_complete$pred[tm_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
+#
+#   # e. predict missingness under obs cov, obs trt (missingness model)
+#   missingness_obs_complete <- stats::predict(deltahat, data.frame(A, W), type = 'response')
+#   missingness_obs_complete$pred[missingness_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
+#
+#   # f. Estimate CATE (pseudo-outcome)
+#   p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (tm_obs_complete$pred * (1-missingness_obs_complete$pred))
+#   p2 <- Y - om_obs$pred
+#   p2 <- ifelse(is.na(p2), 0, p2)
+#   p3 <- om_trt1$pred - om_trt0$pred
+#
+#   CATE_hat <- p1*p2 + p3
 
   # Create Nuisance object
   learned_models <- list(outcome_model = muhat,

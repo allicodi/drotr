@@ -12,6 +12,7 @@
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
 #' @param k_fold_assign_and_CATE dataframe containing ids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)
+#' @param validRowsAll list containing validRows assignents for nuisance models using all observations (only include if using pre-fit nuisance models)
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
@@ -38,6 +39,7 @@ estimate_OTR <- function(df,
                          sl.library.CATE,
                          nuisance_models = NULL,
                          k_fold_assign_and_CATE = NULL,
+                         validRowsAll = NULL,
                          sl.library.outcome = NULL,
                          sl.library.treatment = NULL,
                          sl.library.missingness = NULL,
@@ -77,13 +79,14 @@ estimate_OTR <- function(df,
 
     nuisance_models <- nuisance_output$nuisance_models
     k_fold_assign_and_CATE <- nuisance_output$k_fold_assign_and_CATE
+    validRowsAll <- nuisance_output$validRowsAll
 
   }
 
   # --------------------------------------------------------------------------
   # 2 - Learn CATE models
   # --------------------------------------------------------------------------
-  CATE_models <- drotr::learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE)
+  CATE_models <- drotr::learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, validRowsAll)
 
   # --------------------------------------------------------------------------
   # 3 - Make treatment decisions and compute treatment effects
