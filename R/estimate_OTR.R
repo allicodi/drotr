@@ -52,7 +52,7 @@ estimate_OTR <- function(df,
 
   # if id_name not specified, make index id
   if(is.null(id_name)){
-    df$id <- rownames(df)
+    df$id <- 1:nrow(df)
   } else {
     df$id <- df[[id_name]]
   }

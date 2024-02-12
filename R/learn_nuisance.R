@@ -44,8 +44,13 @@ learn_nuisance <- function(df,
   folds <- cut(seq(1,nrow(df)),breaks=k_folds,labels=FALSE)
   folds <- sample(folds)
 
+  fold_assignments <- data.frame(id = df$id, fold = folds)
+
   k_fold_nuisance <- vector(mode = "list", length = k_folds)
   k_fold_assign_and_CATE <- data.frame()
+
+  validRowsCompleteByFold <- vector(mode = "list", length = k_folds)
+  validRowsAllByFold <- vector(mode = "list", length = k_folds)
 
   for(k in 1:k_folds){
 
@@ -61,16 +66,21 @@ learn_nuisance <- function(df,
                                       outcome_type,
                                       ps_trunc_level)
 
-    k_fold_nuisance[[k]] <- output_learn[[1]]
+    k_fold_nuisance[[k]] <- output_learn$nuisance_models
 
     # note here k is actually denoting the fold that was left out of the training set
     k_fold_assign_and_CATE <- rbind(k_fold_assign_and_CATE, data.frame(id = as.numeric(df_learn$id),
                                                                        k = k,
-                                                                       CATE_hat = output_learn[[2]]))
+                                                                       pseudo_outcome = output_learn$pseudo_outcome))
+    validRowsCompleteByFold[[k]] <- output_learn$validRowsComplete
+    validRowsAllByFold[[k]] <- output_learn$validRowsAll
   }
 
   return(list(nuisance_models = k_fold_nuisance,
-              k_fold_assign_and_CATE = k_fold_assign_and_CATE))
+              k_fold_assign_and_CATE = k_fold_assign_and_CATE,
+              validRowsComplete = validRowsCompleteByFold,
+              validRowsAll = validRowsAllByFold,
+              fold_assignments = fold_assignments))
 }
 
 #' Estimate nuisance models (outcome, treatment, and missingness) and calculate CATE hats for kth fold
@@ -100,6 +110,19 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
                          outcome_type,
                          ps_trunc_level = 0.01){
 
+  # SuperLearner(... , control = list(saveCVFitLibrary = TRUE))
+  # fit$validRows for assigments
+  # get validrows from outcome, then pass validrows into each
+
+  # for v in 1:V
+  #   retrive vth trainings sample specific fits from $cvFitLibrary
+  #   get predictions that i need to make pseudo-oucome from these models
+  #   predict from each of those models on the data in  validRows[[v]]
+  # combine predictions from all models into a single prediction using the SL.weights from the fit
+  # build ensemble model ourself
+
+  # pass same validrows to the CATE model
+
   # Full set of observations
   I_Y <- ifelse(is.na(df[[Y_name]]), 1, 0) #indicator for Y missing
   Y <- df[[Y_name]]
@@ -117,21 +140,25 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   if(outcome_type == "gaussian"){
     muhat <- SuperLearner::SuperLearner(Y = Y_complete, X = data.frame(A_complete, W_complete), family = stats::gaussian(),
-                          cvControl = list(V=10), SL.library = sl.library.outcome)
+                          cvControl = list(V=10), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
   } else {
     muhat <- SuperLearner::SuperLearner(Y = Y_complete, X = data.frame(A_complete, W_complete), family = stats::binomial(),
-                          cvControl = list(V=10), SL.library = sl.library.outcome)
+                          cvControl = list(V=10), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
   }
+
+  validRowsComplete <- muhat$validRows
 
   ### 2 - Fit treatment model ###
 
   pihat <- SuperLearner::SuperLearner(Y = A_vec, X = W, family = stats::binomial(),
                         cvControl = list(V=10), SL.library = sl.library.treatment)
 
+  validRowsAll <- pihat$validRows
+
   ### 3 - Fit missingness model ###
 
   deltahat <- SuperLearner::SuperLearner(Y = I_Y, X = data.frame(A, W), family = stats::binomial(),
-                              cvControl = list(V=10), SL.library = sl.library.missingness)
+                              cvControl = list(V=10, validRows = validRowsAll), SL.library = sl.library.missingness)
 
   ### 4 - Create pseudo-outcome  ###
 
@@ -171,5 +198,8 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   class(learned_models) <- "Nuisance"
 
-  return(list(learned_models, CATE_hat))
+  return(list(nuisance_models = learned_models,
+              pseudo_outcome = CATE_hat,
+              validRowsComplete = validRowsComplete,
+              validRowsAll = validRowsAll))
 }
