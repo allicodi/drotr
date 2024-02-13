@@ -11,7 +11,6 @@
 #' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
 #' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
 #'
-#' @importFrom dplyr left_join
 #' @import stats
 #' @export
 #'
@@ -201,8 +200,6 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 
   # add decisions to kth fold dataframe to return later on
   df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred$pred))
-
-
 
   ### Step 2: Find P(d(Z) = 1) by taking mean(d(Z)) created in step 1
   mean_dZ <- mean(d_pred)

@@ -20,6 +20,8 @@
 #' \describe{
 #'  \item{\code{k_fold_nuisance}}{list of `Nuisance` objects (fit nuisance models) for each of k folds}
 #'  \item{\code{CATE_hat}}{dataframe of CATE estimates and fold assignments for each observation}
+#'  \item{\code{validRows}}{list of SuperLearner row assignments for each training set}
+#'  \item{\code{fold_assignments}}{dataframe containing fold assignments for each id}
 #'  }
 learn_nuisance <- function(df,
                            Y_name,
@@ -35,7 +37,7 @@ learn_nuisance <- function(df,
 
   # if id_name not specified, make index id
   if(is.null(id_name)){
-    df$id <- rownames(df) #fix this, don't use rownames, just assign id
+    df$id <- 1:nrow(df)
   } else {
     df$id <- df[[id_name]]
   }
@@ -49,8 +51,7 @@ learn_nuisance <- function(df,
   k_fold_nuisance <- vector(mode = "list", length = k_folds)
   k_fold_assign_and_CATE <- data.frame()
 
-  validRowsCompleteByFold <- vector(mode = "list", length = k_folds)
-  validRowsAllByFold <- vector(mode = "list", length = k_folds)
+  validRowsByFold <- vector(mode = "list", length = k_folds)
 
   for(k in 1:k_folds){
 
@@ -72,14 +73,12 @@ learn_nuisance <- function(df,
     k_fold_assign_and_CATE <- rbind(k_fold_assign_and_CATE, data.frame(id = as.numeric(df_learn$id),
                                                                        k = k,
                                                                        pseudo_outcome = output_learn$pseudo_outcome))
-    validRowsCompleteByFold[[k]] <- output_learn$validRowsComplete
-    validRowsAllByFold[[k]] <- output_learn$validRowsAll
+    validRowsByFold[[k]] <- output_learn$validRows
   }
 
   return(list(nuisance_models = k_fold_nuisance,
               k_fold_assign_and_CATE = k_fold_assign_and_CATE,
-              validRowsComplete = validRowsCompleteByFold,
-              validRowsAll = validRowsAllByFold,
+              validRows = validRowsByFold,
               fold_assignments = fold_assignments))
 }
 
@@ -94,13 +93,14 @@ learn_nuisance <- function(df,
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome model
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment model
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness model
-#' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
 #' @param outcome_type specifying continuous (gaussian) or binomial outcome Y
+#' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
 #'
 #' @return
 #' \describe{
 #'  \item{\code{k_fold_nuisance}}{object of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
 #'  \item{\code{k_fold_assign_and_CATE}}{numeric vector of CATE estimates for data in df}
+#'  \item{\code{validRows}}{SuperLearner Nuisance model row assignments for kth traning set}
 #'  }
 #' @keywords internal
 learn_nuisance_k <- function(df, Y_name, A_name, W_list,
@@ -110,12 +110,22 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
                          outcome_type,
                          ps_trunc_level = 0.01){
 
+  # assign var original indices
+  df$original_id <- 1:nrow(df)
+
+  # get indices in original dataframe corresponding to NA, non-NA
   idx_na_Y <- which(is.na(df[[Y_name]]))
   idx_no_na_Y <- which(!is.na(df[[Y_name]]))
+
+  # get number of NA observations, overall observations
   nNA <- length(idx_na_Y)
   n <- nrow(df)
 
+  # sort dataframe to put all NAs at beginning
   df_sort <- df[c(idx_na_Y, idx_no_na_Y), ]
+
+  # assign var sorted indices
+  df_sort$df_sort_id <- 1:nrow(df_sort)
 
   # Full set of observations
   I_Y <- ifelse(is.na(df_sort[[Y_name]]), 1, 0) #indicator for Y missing
@@ -125,16 +135,19 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   W <- df_sort[,W_list, drop=FALSE]
 
   # Complete observations only (no NA)
-  df_complete <- df_sort[!is.na(df[[Y_name]]), ] #dataframe removing missing Ys
+  df_complete <- df_sort[!is.na(df_sort[[Y_name]]), ] #dataframe removing missing Ys
   Y_complete <- df_complete[[Y_name]]
   A_complete <- df_complete[, A_name, drop=FALSE]
   W_complete <- df_complete[, W_list, drop = FALSE]
 
+  # split NA observations into validRows folds (if NA present)
   if(nNA > 0){
     rows_na_Y <- split(sample(1:nNA), rep(1:10, length = nNA))
   }else{
     rows_na_Y <- vector(mode = "list", length = 0L)
   }
+
+  # split remaining observations into validRows folds
   rows_no_na_Y <- split(sample((nNA+1):n), rep(1:10, length = n-nNA))
   master_validRows <- vector(mode = "list", length = 10)
   for (vv in seq_len(10)) {
@@ -148,8 +161,11 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   }
 
   ### 1 - Fit outcome model ###
+
+  # muhat fit using only non-NA observations (use validRows excluding NAs)
   muhat_validRows <- lapply(master_validRows, function(x){
-    x - nNA
+    col <- x - nNA
+    col[col > 0]
   })
 
   if(outcome_type == "gaussian"){
@@ -181,30 +197,20 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   ### 4 - Create pseudo-outcome  ###
 
-  # for v in 1:V
-  #   retrive vth trainings sample specific fits from $cvFitLibrary
-  #   get predictions that i need to make pseudo-oucome from these models
-  #   predict from each of those models on the data in  validRows[[v]]
-  # combine predictions from all models into a single prediction using the SL.weights from the fit
-  # build ensemble model ourself
+  n_muhat_lib <- length(muhat.cvFitLibrary[[1]])
+  n_pihat_lib <- length(pihat.cvFitLibrary[[1]])
+  n_deltahat_lib <- length(deltahat.cvFitLibrary[[1]])
 
-  # pass same validrows to the CATE model
-
-  muhat_obs_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
-  muhat_1_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
-  muhat_0_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
-  pihat_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
-  deltahat_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
-
-  muhat_individ_mod <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
+  muhat_obs_matrix <- matrix(NA, nrow = nrow(df), ncol = n_muhat_lib)
+  muhat_1_matrix <- matrix(NA, nrow = nrow(df), ncol = n_muhat_lib)
+  muhat_0_matrix <- matrix(NA, nrow = nrow(df), ncol = n_muhat_lib)
+  pihat_matrix <- matrix(NA, nrow = nrow(df), ncol = n_pihat_lib)
+  deltahat_matrix <- matrix(NA, nrow = nrow(df), ncol = n_deltahat_lib)
 
   for(v in 1:10){
     muhat.v <- muhat.cvFitLibrary[[v]]
     pihat.v <- pihat.cvFitLibrary[[v]]
     deltahat.v <- deltahat.cvFitLibrary[[v]]
-
-    # should I still be predicting on all of them? or just the ones in the vth fold
-    # also muhat was fit using just complete, but we're predicting using all of them?
 
     # a. get pred from outcome model under obs trt and obs cov (outcome model)
     for(model in 1:length(muhat.v)){
@@ -212,110 +218,74 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
         muhat.v[[model]],
         newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE]
       )
-      muhat_individ_mod[master_validRows[[v]], model] <- muhat.pred
+      muhat_obs_matrix[master_validRows[[v]], model] <- muhat.pred
     }
-#
-#     om_obs.v <- muhat_individ_mod %*% muhat.coef
-#     muhat_obs_matrix[,v] <- om_obs.v
-
 
     # b. predict from trt = 1 and obs cov (outcome model)
     om_trt1_df <- data.frame(1, W)
     names(om_trt1_df)[1] <- A_name
 
-    muhat_individ_mod1 <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
     for(model in 1:length(muhat.v)){
-      muhat1.pred <- stats::predict(muhat.v[[model]], om_trt1_df, type = 'response')
-      muhat_individ_mod1[,model] <- muhat1.pred
+      muhat1.pred <- stats::predict(
+        muhat.v[[model]],
+        newdata = om_trt1_df[master_validRows[[v]], , drop = FALSE]
+      )
+      muhat_1_matrix[master_validRows[[v]], model] <- muhat1.pred
     }
-
-    om_trt1.v <- muhat_individ_mod1 %*% muhat.coef
-    muhat_1_matrix[,v] <- om_trt1.v
 
     # c. predict from trt = 0 and obs cov (outcome model)
     om_trt0_df <- data.frame(0, W)
     names(om_trt0_df)[1] <- A_name
 
-    muhat_individ_mod0 <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
     for(model in 1:length(muhat.v)){
-      muhat0.pred <- stats::predict(muhat.v[[model]], om_trt0_df, type = 'response')
-      muhat_individ_mod0[,model] <- muhat0.pred
+      muhat0.pred <- stats::predict(
+        muhat.v[[model]],
+        newdata = om_trt0_df[master_validRows[[v]], , drop = FALSE]
+      )
+      muhat_0_matrix[master_validRows[[v]], model] <- muhat0.pred
     }
-
-    om_trt0.v <- muhat_individ_mod0 %*% muhat.coef
-    muhat_0_matrix[,v] <- om_trt0.v
 
     # d. predict treatment from obs cov & truncate observations that are too small (treatment model)
-
-    pihat_individ_mod <- matrix(NA, nrow = nrow(df), ncol = length(pihat.v))
     for(model in 1:length(pihat.v)){
-      pihat.pred <- stats::predict(pihat.v[[model]], data.frame(W), type = 'response')
-      pihat_individ_mod[,model] <- pihat.pred
+      pihat.pred <- stats::predict(
+        pihat.v[[model]],
+        newdata = data.frame(W)[master_validRows[[v]], , drop = FALSE],
+        type = 'response'
+      )
+      pihat.pred[pihat.pred < ps_trunc_level] <- ps_trunc_level
+      pihat_matrix[master_validRows[[v]], model] <- pihat.pred
     }
-
-    pihat.v <- pihat_individ_mod %*% pihat.coef
-    pihat.v[pihat.v < ps_trunc_level] <- ps_trunc_level
-    pihat_matrix[,v] <- pihat.v
 
     # e. predict missingness under obs cov, obs trt (missingness model)
-    delta_individ_mod <- matrix(NA, nrow = nrow(df), ncol=length(deltahat.v))
     for(model in 1:length(deltahat.v)){
-      deltahat.pred <- stats::predict(deltahat.v[[model]], data.frame(A, W), type = 'response')
-      delta_individ_mod[,model] <- deltahat.pred
+      deltahat.pred <- stats::predict(
+        deltahat.v[[model]],
+        newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE],
+        type = 'response'
+      )
+      deltahat.pred[deltahat.pred < ps_trunc_level] <- ps_trunc_level
+      deltahat_matrix[master_validRows[[v]], model] <- deltahat.pred
     }
-
-    deltahat.v <- delta_individ_mod %*% deltahat.coef
-    deltahat.v[deltahat.v <- ps_trunc_level] <- ps_trunc_level
-    deltahat_matrix[,v] <- deltahat.v
 
   }
 
-  avg_muhat_obs <- rowMeans(muhat_obs_matrix)
-  avg_muhat_1 <- rowMeans(muhat_1_matrix)
-  avg_muhat_0 <- rowMeans(muhat_0_matrix)
-  avg_pihat_obs <- rowMeans(pihat_matrix)
-  avg_deltahat_obs <- rowMeans(deltahat_matrix)
+  muhat_obs_weighted <- muhat_obs_matrix %*% muhat.coef
+  muhat_1_weighted <- muhat_1_matrix %*% muhat.coef
+  muhat_0_weighted <- muhat_0_matrix %*% muhat.coef
+  pihat_weighted <- pihat_matrix %*% pihat.coef
+  deltahat_weighted <- deltahat_matrix %*% deltahat.coef
 
   # f. Estimate CATE (pseudo-outcome)
-  p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (avg_pihat_obs * (1-avg_deltahat_obs))
-  p2 <- Y - avg_muhat_obs
+  p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (pihat_weighted * (1-deltahat_weighted))
+  p2 <- Y - muhat_obs_weighted
   p2 <- ifelse(is.na(p2), 0, p2)
-  p3 <- avg_muhat_1 - avg_muhat_0
+  p3 <- muhat_1_weighted - muhat_0_weighted
 
   CATE_hat <- p1*p2 + p3
 
-#
-#
-# # ------------------------------------------------------------------------
-#
-#   # a. get pred from outcome model under obs trt and obs cov (outcome model)
-#   om_obs <- stats::predict(muhat, data.frame(A, W), type = 'response')
-#
-#   # b. predict from trt = 1 and obs cov (outcome model)
-#   om_trt1_df <- data.frame(1, W)
-#   names(om_trt1_df)[1] <- A_name
-#   om_trt1 <- stats::predict(muhat, om_trt1_df, type = 'response')
-#
-#   # c. predict from trt = 0 and obs cov (outcome model)
-#   om_trt0_df <- data.frame(0, W)
-#   names(om_trt0_df)[1] <- A_name
-#   om_trt0 <- stats::predict(muhat, om_trt0_df, type = 'response')
-#
-#   # d. predict treatment from obs cov & truncate observations that are too small (treatment model)
-#   tm_obs_complete <- stats::predict(pihat, data.frame(W), type = 'response')
-#   tm_obs_complete$pred[tm_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
-#
-#   # e. predict missingness under obs cov, obs trt (missingness model)
-#   missingness_obs_complete <- stats::predict(deltahat, data.frame(A, W), type = 'response')
-#   missingness_obs_complete$pred[missingness_obs_complete$pred < ps_trunc_level] <- ps_trunc_level
-#
-#   # f. Estimate CATE (pseudo-outcome)
-#   p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (tm_obs_complete$pred * (1-missingness_obs_complete$pred))
-#   p2 <- Y - om_obs$pred
-#   p2 <- ifelse(is.na(p2), 0, p2)
-#   p3 <- om_trt1$pred - om_trt0$pred
-#
-#   CATE_hat <- p1*p2 + p3
+  # reorder CATE hat to correspond to original dataframe
+  df_sort$CATE_hat <- CATE_hat
+  reorder_df <- df_sort[order(df_sort$original_id),]
 
   # Create Nuisance object
   learned_models <- list(outcome_model = muhat,
@@ -325,7 +295,6 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   class(learned_models) <- "Nuisance"
 
   return(list(nuisance_models = learned_models,
-              pseudo_outcome = CATE_hat,
-              validRowsComplete = validRowsComplete,
-              validRowsAll = validRowsAll))
+              pseudo_outcome = reorder_df$CATE_hat,
+              validRows = master_validRows))
 }

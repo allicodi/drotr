@@ -4,7 +4,7 @@
 \alias{learn_CATE}
 \title{Function to learn model for CATE using k-fold cross validation}
 \usage{
-learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, validRowsAll)
+learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, validRows)
 }
 \arguments{
 \item{df}{dataframe containing full dataset}
@@ -15,7 +15,7 @@ learn_CATE(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, validRowsAll)
 
 \item{sl.library.CATE}{character vector of SuperLearner libraries to use to fit the CATE model}
 
-\item{validRowsAll}{validRows SuperLearner row assignments from nuisance models using all rows in data (missingness, treatment models)}
+\item{validRows}{validRows SuperLearner row assignments from nuisance models using all rows in data (missingness, treatment models)}
 }
 \value{
 list containing SuperLearner model for CATE in each fold

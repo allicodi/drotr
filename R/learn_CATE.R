@@ -4,14 +4,14 @@
 #' @param Z_list character vector containing names of variables in df to use to fit CATE model (variables used in treatment rule)
 #' @param k_fold_assign_and_CATE dataframe containing ids, fold assignments, and CATE estimate for each observation in df
 #' @param sl.library.CATE character vector of SuperLearner libraries to use to fit the CATE model
-#' @param validRowsAll validRows SuperLearner row assignments from nuisance models using all rows in data (missingness, treatment models)
+#' @param validRows validRows SuperLearner row assignments from nuisance models using all rows in data (missingness, treatment models)
 #'
 #' @import SuperLearner
 #' @import stats
 #' @export
 #'
 #' @returns list containing SuperLearner model for CATE in each fold
-learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, validRowsAll){
+learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, validRows){
 
   k_folds <- max(k_fold_assign_and_CATE$k)
   k_fold_CATE_models <- vector(mode = "list", length = k_folds)
@@ -31,16 +31,12 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, vali
     # join CATEhat with data by id
     df_learn <- merge(df_learn, k_fold_assign_and_CATE_sub, by = "id")
 
-    # df_learn$id <- as.character(df_learn$id)
-    # k_fold_assign_and_CATE_sub$id <- as.character(k_fold_assign_and_CATE_sub$id)
-    # df_learn <- dplyr::left_join(df_learn, k_fold_assign_and_CATE_sub, by = "id") # don't use dplyr
-
-    validRows <- validRowsAll[[k]]
+    validRowsK <- validRows[[k]]
 
     k_fold_CATE_models[[k]] <- learn_CATE_k(df = df_learn,
                                             Z_list = Z_list,
                                             sl.library.CATE = sl.library.CATE,
-                                            validRows = validRows)
+                                            validRows = validRowsK)
   }
 
   return(k_fold_CATE_models)
