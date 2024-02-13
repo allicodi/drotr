@@ -110,46 +110,71 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
                          outcome_type,
                          ps_trunc_level = 0.01){
 
+  idx_na_Y <- which(is.na(df[[Y_name]]))
+  idx_no_na_Y <- which(!is.na(df[[Y_name]]))
+  nNA <- length(idx_na_Y)
+  n <- nrow(df)
+
+  df_sort <- df[c(idx_na_Y, idx_no_na_Y), ]
+
   # Full set of observations
-  I_Y <- ifelse(is.na(df[[Y_name]]), 1, 0) #indicator for Y missing
-  Y <- df[[Y_name]]
-  A_vec <- df[[A_name]]
-  A <- df[,A_name, drop=FALSE]
-  W <- df[,W_list, drop=FALSE]
+  I_Y <- ifelse(is.na(df_sort[[Y_name]]), 1, 0) #indicator for Y missing
+  Y <- df_sort[[Y_name]]
+  A_vec <- df_sort[[A_name]]
+  A <- df_sort[,A_name, drop=FALSE]
+  W <- df_sort[,W_list, drop=FALSE]
 
   # Complete observations only (no NA)
-  df_complete <- df[!is.na(df[[Y_name]]), ] #dataframe removing missing Ys
+  df_complete <- df_sort[!is.na(df[[Y_name]]), ] #dataframe removing missing Ys
   Y_complete <- df_complete[[Y_name]]
   A_complete <- df_complete[, A_name, drop=FALSE]
   W_complete <- df_complete[, W_list, drop = FALSE]
 
+  if(nNA > 0){
+    rows_na_Y <- split(sample(1:nNA), rep(1:10, length = nNA))
+  }else{
+    rows_na_Y <- vector(mode = "list", length = 0L)
+  }
+  rows_no_na_Y <- split(sample((nNA+1):n), rep(1:10, length = n-nNA))
+  master_validRows <- vector(mode = "list", length = 10)
+  for (vv in seq_len(10)) {
+    if(length(rows_na_Y) >= vv & length(rows_no_na_Y) >= vv){
+      master_validRows[[vv]] <- c(rows_na_Y[[vv]], rows_no_na_Y[[vv]])
+    }else if(length(rows_na_Y) < vv){
+      master_validRows[[vv]] <- rows_no_na_Y[[vv]]
+    }else if(length(rows_no_na_Y) < vv){
+      master_validRows[[vv]] <- rows_na_Y[[vv]]
+    }
+  }
+
   ### 1 - Fit outcome model ###
+  muhat_validRows <- lapply(master_validRows, function(x){
+    x - nNA
+  })
 
   if(outcome_type == "gaussian"){
     muhat <- SuperLearner::SuperLearner(Y = Y_complete, X = data.frame(A_complete, W_complete), family = stats::gaussian(),
-                          cvControl = list(V=10), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
+                          cvControl = list(validRows = muhat_validRows), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
   } else {
     muhat <- SuperLearner::SuperLearner(Y = Y_complete, X = data.frame(A_complete, W_complete), family = stats::binomial(),
-                          cvControl = list(V=10), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
+                          cvControl = list(validRows = muhat_validRows), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
   }
 
-  validRowsComplete <- muhat$validRows
   muhat.cvFitLibrary <- muhat$cvFitLibrary
   muhat.coef <- muhat$coef
 
   ### 2 - Fit treatment model ###
 
   pihat <- SuperLearner::SuperLearner(Y = A_vec, X = W, family = stats::binomial(),
-                        cvControl = list(V=10), SL.library = sl.library.treatment, control = list(saveCVFitLibrary = TRUE))
+                        cvControl = list(validRows = master_validRows), SL.library = sl.library.treatment, control = list(saveCVFitLibrary = TRUE))
 
-  validRowsAll <- pihat$validRows
   pihat.cvFitLibrary <- pihat$cvFitLibrary
   pihat.coef <- pihat$coef
 
   ### 3 - Fit missingness model ###
 
   deltahat <- SuperLearner::SuperLearner(Y = I_Y, X = data.frame(A, W), family = stats::binomial(),
-                              cvControl = list(V=10, validRows = validRowsAll), SL.library = sl.library.missingness, control = list(saveCVFitLibrary = TRUE))
+                              cvControl = list(validRows = master_validRows), SL.library = sl.library.missingness, control = list(saveCVFitLibrary = TRUE))
 
   deltahat.cvFitLibrary <- deltahat$cvFitLibrary
   deltahat.coef <- deltahat$coef
@@ -171,6 +196,8 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   pihat_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
   deltahat_matrix <- matrix(NA, nrow = nrow(df), ncol = 10)
 
+  muhat_individ_mod <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
+
   for(v in 1:10){
     muhat.v <- muhat.cvFitLibrary[[v]]
     pihat.v <- pihat.cvFitLibrary[[v]]
@@ -180,14 +207,16 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
     # also muhat was fit using just complete, but we're predicting using all of them?
 
     # a. get pred from outcome model under obs trt and obs cov (outcome model)
-    muhat_individ_mod <- matrix(NA, nrow = nrow(df), ncol = length(muhat.v))
     for(model in 1:length(muhat.v)){
-      muhat.pred <- stats::predict(muhat.v[[model]], data.frame(A, W), type = 'response')
-      muhat_individ_mod[,model] <- muhat.pred
+      muhat.pred <- stats::predict(
+        muhat.v[[model]],
+        newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE]
+      )
+      muhat_individ_mod[master_validRows[[v]], model] <- muhat.pred
     }
-
-    om_obs.v <- muhat_individ_mod %*% muhat.coef
-    muhat_obs_matrix[,v] <- om_obs.v
+#
+#     om_obs.v <- muhat_individ_mod %*% muhat.coef
+#     muhat_obs_matrix[,v] <- om_obs.v
 
 
     # b. predict from trt = 1 and obs cov (outcome model)
