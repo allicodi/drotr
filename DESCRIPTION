@@ -13,7 +13,6 @@ Encoding: UTF-8
 Depends: R (>= 3.0.0)
 Imports: 
     SuperLearner, 
-    dplyr,
     stats
 Suggests: 
     knitr,
