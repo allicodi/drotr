@@ -29,7 +29,9 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, vali
     k_fold_assign_and_CATE_sub <- k_fold_assign_and_CATE[k_fold_assign_and_CATE$k == k,]
 
     # join CATEhat with data by id
+    df_learn$original_id <- 1:nrow(df_learn)
     df_learn <- merge(df_learn, k_fold_assign_and_CATE_sub, by = "id")
+    df_learn <- df_learn[order(df_learn$original_id),]
 
     validRowsK <- validRows[[k]]
 
@@ -56,10 +58,13 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, vali
 #' @keywords internal
 learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
 
+  # shuffle dataframe to correspond to validRows again
   # get CATE_hat + covariates interested in using for decision rule
+  df <- df[order(df$shuffle_idx),]
   Z <- df[,Z_list, drop = FALSE]
   CATE_hat <- df$pseudo_outcome
 
+  # pass CATEhat and Z in sorted order corresponding to validRows
   CATE_hat_model <- SuperLearner::SuperLearner(Y = CATE_hat, X = Z, family = stats::gaussian(),
                                  cvControl = list(V=10, validRows = validRows), SL.library = sl.library.CATE)
 

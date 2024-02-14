@@ -38,8 +38,9 @@ learn_nuisance_k(
 \value{
 \describe{
  \item{\code{k_fold_nuisance}}{object of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
- \item{\code{k_fold_assign_and_CATE}}{numeric vector of CATE estimates for data in df}
- \item{\code{validRows}}{SuperLearner Nuisance model row assignments for kth traning set}
+ \item{\code{pseudo_outcome}}{numeric vector of pseudo_outcome CATE estimates for data in df}
+ \item{\code{shuffle_idx}}{numeric vector corresponding to index in sorted dataframe}
+ \item{\code{validRows}}{SuperLearner row assignments for kth training set (training set sorted to have all NA outcomes first)}
  }
 }
 \description{

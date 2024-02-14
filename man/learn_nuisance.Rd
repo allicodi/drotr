@@ -44,8 +44,8 @@ learn_nuisance(
 \value{
 \describe{
  \item{\code{k_fold_nuisance}}{list of `Nuisance` objects (fit nuisance models) for each of k folds}
- \item{\code{CATE_hat}}{dataframe of CATE estimates and fold assignments for each observation}
- \item{\code{validRows}}{list of SuperLearner row assignments for each training set}
+ \item{\code{k_fold_assign_and_CATE}}{dataframe of CATE estimates, k-1 folds, pseudo-outcome, and shuffle idx corresponding to validRows for each observation}
+ \item{\code{validRows}}{list of innerCV SuperLearner row assignments for each training set}
  \item{\code{fold_assignments}}{dataframe containing fold assignments for each id}
  }
 }

@@ -19,8 +19,8 @@
 #' @return
 #' \describe{
 #'  \item{\code{k_fold_nuisance}}{list of `Nuisance` objects (fit nuisance models) for each of k folds}
-#'  \item{\code{CATE_hat}}{dataframe of CATE estimates and fold assignments for each observation}
-#'  \item{\code{validRows}}{list of SuperLearner row assignments for each training set}
+#'  \item{\code{k_fold_assign_and_CATE}}{dataframe of CATE estimates, k-1 folds, pseudo-outcome, and shuffle idx corresponding to validRows for each observation}
+#'  \item{\code{validRows}}{list of innerCV SuperLearner row assignments for each training set}
 #'  \item{\code{fold_assignments}}{dataframe containing fold assignments for each id}
 #'  }
 learn_nuisance <- function(df,
@@ -72,7 +72,8 @@ learn_nuisance <- function(df,
     # note here k is actually denoting the fold that was left out of the training set
     k_fold_assign_and_CATE <- rbind(k_fold_assign_and_CATE, data.frame(id = as.numeric(df_learn$id),
                                                                        k = k,
-                                                                       pseudo_outcome = output_learn$pseudo_outcome))
+                                                                       pseudo_outcome = output_learn$pseudo_outcome,
+                                                                       shuffle_idx = output_learn$shuffle_idx))
     validRowsByFold[[k]] <- output_learn$validRows
   }
 
@@ -99,8 +100,9 @@ learn_nuisance <- function(df,
 #' @return
 #' \describe{
 #'  \item{\code{k_fold_nuisance}}{object of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
-#'  \item{\code{k_fold_assign_and_CATE}}{numeric vector of CATE estimates for data in df}
-#'  \item{\code{validRows}}{SuperLearner Nuisance model row assignments for kth traning set}
+#'  \item{\code{pseudo_outcome}}{numeric vector of pseudo_outcome CATE estimates for data in df}
+#'  \item{\code{shuffle_idx}}{numeric vector corresponding to index in sorted dataframe}
+#'  \item{\code{validRows}}{SuperLearner row assignments for kth training set (training set sorted to have all NA outcomes first)}
 #'  }
 #' @keywords internal
 learn_nuisance_k <- function(df, Y_name, A_name, W_list,
@@ -252,7 +254,11 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
         newdata = data.frame(W)[master_validRows[[v]], , drop = FALSE],
         type = 'response'
       )
+
+      # truncate if probability too close to 0/1
       pihat.pred[pihat.pred < ps_trunc_level] <- ps_trunc_level
+      pihat.pred[pihat.pred > 1 - ps_trunc_level] <- 1 - ps_trunc_level
+
       pihat_matrix[master_validRows[[v]], model] <- pihat.pred
     }
 
@@ -263,7 +269,11 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
         newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE],
         type = 'response'
       )
+
+      # truncate if probability too close to 0/1
       deltahat.pred[deltahat.pred < ps_trunc_level] <- ps_trunc_level
+      deltahat.pred[deltahat.pred > 1 - ps_trunc_level] <- 1 - ps_trunc_level
+
       deltahat_matrix[master_validRows[[v]], model] <- deltahat.pred
     }
 
@@ -296,5 +306,6 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   return(list(nuisance_models = learned_models,
               pseudo_outcome = reorder_df$CATE_hat,
+              shuffle_idx = reorder_df$df_sort_id,
               validRows = master_validRows))
 }
