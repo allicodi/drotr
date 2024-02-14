@@ -214,6 +214,12 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
     pihat.v <- pihat.cvFitLibrary[[v]]
     deltahat.v <- deltahat.cvFitLibrary[[v]]
 
+
+    # NOTE -- muhat.pred is breaking for ranger with this :
+
+    # Error in predict.SL.ranger(muhat.v[[model]], newdata = data.frame(A, W)[master_validRows[[v]],  :
+    #argument "family" is missing, with no default
+
     # a. get pred from outcome model under obs trt and obs cov (outcome model)
     for(model in 1:length(muhat.v)){
       muhat.pred <- stats::predict(
