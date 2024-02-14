@@ -280,7 +280,6 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
       # truncate if probability too close to 0/1
       deltahat.pred[deltahat.pred < ps_trunc_level] <- ps_trunc_level
-      deltahat.pred[deltahat.pred > 1 - ps_trunc_level] <- 1 - ps_trunc_level
 
       deltahat_matrix[master_validRows[[v]], model] <- deltahat.pred
     }
