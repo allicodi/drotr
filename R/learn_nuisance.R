@@ -236,7 +236,8 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
     for(model in 1:length(muhat.v)){
       muhat1.pred <- stats::predict(
         muhat.v[[model]],
-        newdata = om_trt1_df[master_validRows[[v]], , drop = FALSE]
+        newdata = om_trt1_df[master_validRows[[v]], , drop = FALSE],
+        family = muhat$family
       )
       muhat_1_matrix[master_validRows[[v]], model] <- muhat1.pred
     }
@@ -248,7 +249,8 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
     for(model in 1:length(muhat.v)){
       muhat0.pred <- stats::predict(
         muhat.v[[model]],
-        newdata = om_trt0_df[master_validRows[[v]], , drop = FALSE]
+        newdata = om_trt0_df[master_validRows[[v]], , drop = FALSE],
+        family = muhat$family
       )
       muhat_0_matrix[master_validRows[[v]], model] <- muhat0.pred
     }
@@ -258,7 +260,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
       pihat.pred <- stats::predict(
         pihat.v[[model]],
         newdata = data.frame(W)[master_validRows[[v]], , drop = FALSE],
-        type = 'response'
+        family = pihat$family
       )
 
       # truncate if probability too close to 0/1
@@ -273,7 +275,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
       deltahat.pred <- stats::predict(
         deltahat.v[[model]],
         newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE],
-        type = 'response'
+        family = deltahat$family
       )
 
       # truncate if probability too close to 0/1
