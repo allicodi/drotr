@@ -224,7 +224,8 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
     for(model in 1:length(muhat.v)){
       muhat.pred <- stats::predict(
         muhat.v[[model]],
-        newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE]
+        newdata = data.frame(A, W)[master_validRows[[v]], , drop = FALSE],
+        family = muhat$family
       )
       muhat_obs_matrix[master_validRows[[v]], model] <- muhat.pred
     }
