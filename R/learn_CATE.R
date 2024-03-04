@@ -68,5 +68,8 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
   CATE_hat_model <- SuperLearner::SuperLearner(Y = CATE_hat, X = Z, family = stats::gaussian(),
                                  cvControl = list(V=10, validRows = validRows), SL.library = sl.library.CATE)
 
+  CATE_hat_model$cvFitLibrary <- NULL
+  CATE_hat_model$env <- NULL
+
   return(CATE_hat_model)
 }

@@ -304,6 +304,10 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   pihat$cvFitLibrary <- NULL
   deltahat$cvFitLibrary <- NULL
 
+  # eliminate env to save space in nuisance object
+  muhat$env <- NULL
+  pihat$env <- NULL
+  deltahat$env <- NULL
 
   # Create Nuisance object
   learned_models <- list(outcome_model = muhat,
