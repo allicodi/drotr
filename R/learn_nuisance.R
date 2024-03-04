@@ -309,6 +309,46 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   pihat$env <- NULL
   deltahat$env <- NULL
 
+  # function to eliminate unnecessary input in GLMs
+  # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
+  strip_glm <- function(cm) {
+    cm$y = c()
+    cm$model = c()
+
+    cm$residuals = c()
+    cm$fitted.values = c()
+    cm$effects = c()
+    cm$qr$qr = c()
+    cm$linear.predictors = c()
+    cm$weights = c()
+    cm$prior.weights = c()
+    cm$data = c()
+
+    cm$family$variance = c()
+    cm$family$dev.resids = c()
+    cm$family$aic = c()
+    cm$family$validmu = c()
+    cm$family$simulate = c()
+    attr(cm$terms,".Environment") = c()
+    attr(cm$formula,".Environment") = c()
+
+    cm
+  }
+
+  # function to apply strip_glm to any SL.glm libraries in nuisance model
+  strip_nuisance <- function(nuisance_model){
+    for(i in 1:length(nuisance_model$fitLibrary)){
+      if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
+        nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
+      }
+    }
+    return(nuisance_model)
+  }
+
+  muhat <- strip_nuisance(muhat)
+  pihat <- strip_nuisance(pihat)
+  deltahat <- strip_nuisance(deltahat)
+
   # Create Nuisance object
   learned_models <- list(outcome_model = muhat,
                          treatment_model = pihat,
