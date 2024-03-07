@@ -71,5 +71,58 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
   CATE_hat_model$cvFitLibrary <- NULL
   CATE_hat_model$env <- NULL
 
+  # helper function to eliminate unnecessary input in GLMs
+  # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
+  strip_glm <- function(cm, earth = FALSE) {
+    cm$y = c()
+    cm$model = c()
+
+    cm$residuals = c()
+    cm$fitted.values = c()
+    cm$effects = c()
+    cm$qr$qr = c()
+    cm$linear.predictors = c()
+    cm$weights = c()
+    cm$prior.weights = c()
+    cm$data = c()
+
+    cm$family$variance = c()
+    cm$family$dev.resids = c()
+    cm$family$aic = c()
+    cm$family$validmu = c()
+    cm$family$simulate = c()
+
+    # handles earth package using offset from environment, environment dramatically increases size when saved to Rds
+    if(earth == TRUE){
+      attr(cm$terms,".Environment") = rlang::new_environment(data = list(offset = NULL), parent = baseenv())
+    } else {
+      attr(cm$terms,".Environment") = c()
+    }
+
+    attr(cm$formula,".Environment") = c()
+
+    cm
+  }
+
+  # helper function to apply strip_glm to any glm libraries in nuisance model
+  # else if to handle glm within earth
+  strip_cate <- function(cate_model){
+    for(i in 1:length(cate_model$fitLibrary)){
+
+      if(class(cate_model$fitLibrary[[i]][[1]])[1] == "glm"){
+        cate_model$fitLibrary[[i]][[1]] <- strip_glm(cate_model$fitLibrary[[i]][[1]])
+      } else if(class(cate_model$fitLibrary[[i]])[1] == "SL.earth"){
+
+        for(earth_glm in 1:length(cate_model$fitLibrary[[i]][[1]]$glm.list)){
+          cate_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(cate_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
+        }
+
+      }
+    }
+    return(cate_model)
+  }
+
+  CATE_hat_model <- strip_cate(CATE_hat_model)
+
   return(CATE_hat_model)
 }

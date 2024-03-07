@@ -311,7 +311,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   # function to eliminate unnecessary input in GLMs
   # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
-  strip_glm <- function(cm) {
+  strip_glm <- function(cm, earth = FALSE) {
     cm$y = c()
     cm$model = c()
 
@@ -329,17 +329,32 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
     cm$family$aic = c()
     cm$family$validmu = c()
     cm$family$simulate = c()
-    attr(cm$terms,".Environment") = c()
+
+    # handles earth package using offset from environment, environment dramatically increases size when saved to Rds
+    if(earth == TRUE){
+      attr(cm$terms,".Environment") = rlang::new_environment(data = list(offset = NULL), parent = baseenv())
+    } else {
+      attr(cm$terms,".Environment") = c()
+    }
+
     attr(cm$formula,".Environment") = c()
 
     cm
   }
 
   # function to apply strip_glm to any SL.glm libraries in nuisance model
+  # else if to handle glm within earth
   strip_nuisance <- function(nuisance_model){
     for(i in 1:length(nuisance_model$fitLibrary)){
+
       if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
         nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
+      } else if(class(nuisance_model$fitLibrary[[i]])[1] == "SL.earth"){
+
+        for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+          nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
+        }
+
       }
     }
     return(nuisance_model)
