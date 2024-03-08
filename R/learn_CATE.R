@@ -112,11 +112,13 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
       if(class(cate_model$fitLibrary[[i]][[1]])[1] == "glm"){
         cate_model$fitLibrary[[i]][[1]] <- strip_glm(cate_model$fitLibrary[[i]][[1]])
       } else if(class(cate_model$fitLibrary[[i]])[1] == "SL.earth"){
+        if(!is.null(cate_model$fitLibrary[[i]][[1]]$glm.list)){
+          #check for presence of glm.list
+          for(earth_glm in 1:length(cate_model$fitLibrary[[i]][[1]]$glm.list)){
+            cate_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(cate_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
+          }
 
-        for(earth_glm in 1:length(cate_model$fitLibrary[[i]][[1]]$glm.list)){
-          cate_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(cate_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
         }
-
       }
     }
     return(cate_model)
