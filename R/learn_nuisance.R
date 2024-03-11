@@ -350,11 +350,13 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
       if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
         nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
       } else if(class(nuisance_model$fitLibrary[[i]])[1] == "SL.earth"){
+        if(!is.null(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+          #check for presence of glm.list
+          for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+            nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
+          }
 
-        for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
-          nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
         }
-
       }
     }
     return(nuisance_model)
