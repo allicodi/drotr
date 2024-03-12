@@ -99,7 +99,12 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     # k_non_na will be the same for k_fold_EYd_dZ1 and k_fold_EY0_dZ1, find once
     k_non_na <- which(!is.na(k_fold_EY_Ad_dZ1$var_aug))
     k_folds_non_na <- length(k_non_na)
-    num_obs <- nrow(k_fold_assign_and_CATE[k_fold_assign_and_CATE$k %in% k_non_na,])
+
+    # new
+    num_obs <- nrow(df) * (k_folds_non_na / k_folds)
+
+    # testing- think this is wrong when k > 2
+    #num_obs <- nrow(k_fold_assign_and_CATE[k_fold_assign_and_CATE$k %in% k_non_na,])
 
     aggregated_results <- data.frame(threshold = t,
                                       aiptw_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$aiptw, na.rm=TRUE),
