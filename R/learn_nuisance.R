@@ -293,7 +293,15 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   p2 <- ifelse(is.na(p2), 0, p2)
   p3 <- muhat_1_weighted - muhat_0_weighted
 
-  CATE_hat <- p1*p2 + p3
+  #CATE_hat <- p1*p2 + p3
+
+  # Passing in true CATE instead of pseudo-outcome for testing
+  CATE_hat <- 0.194*df$shigella_bin +
+    -0.0074* df$shigella_bin*df$lfazscore +
+    -0.0025*df$shigella_bin*df$lfazscore*df$agemchild +
+    rnorm(nrow(df),0,0)
+
+  # ^ test different noise levels rnorm
 
   # reorder CATE hat to correspond to original dataframe
   df_sort$CATE_hat <- CATE_hat
