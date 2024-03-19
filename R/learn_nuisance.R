@@ -296,10 +296,10 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   #CATE_hat <- p1*p2 + p3
 
   # Passing in true CATE instead of pseudo-outcome for testing
-  CATE_hat <- 0.194*df$shigella_bin +
-    -0.0074* df$shigella_bin*df$lfazscore +
-    -0.0025*df$shigella_bin*df$lfazscore*df$agemchild +
-    rnorm(nrow(df),0,0)
+  CATE_hat <- 0.194*df_sort$shigella_bin +
+    -0.0074* df_sort$shigella_bin*df_sort$lfazscore +
+    -0.0025*df_sort$shigella_bin*df_sort$lfazscore*df_sort$agemchild +
+    rnorm(nrow(df_sort),0,0.5)
 
   # ^ test different noise levels rnorm
 
