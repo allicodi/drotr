@@ -295,13 +295,13 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   #CATE_hat <- p1*p2 + p3
 
+  # next cheat with fake cheating pseudo outcome
+
   # Passing in true CATE instead of pseudo-outcome for testing
   CATE_hat <- 0.194*df_sort$shigella_bin +
     -0.0074* df_sort$shigella_bin*df_sort$lfazscore +
     -0.0025*df_sort$shigella_bin*df_sort$lfazscore*df_sort$agemchild +
-    rnorm(nrow(df_sort),0,0.5)
-
-  # ^ test different noise levels rnorm
+    rnorm(nrow(df_sort),0, 1/sqrt(nrow(df_sort)))
 
   # reorder CATE hat to correspond to original dataframe
   df_sort$CATE_hat <- CATE_hat
