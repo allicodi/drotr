@@ -35,10 +35,12 @@ learn_CATE <- function(df, Z_list, k_fold_assign_and_CATE, sl.library.CATE, vali
 
     validRowsK <- validRows[[k]]
 
-    k_fold_CATE_models[[k]] <- learn_CATE_k(df = df_learn,
-                                            Z_list = Z_list,
-                                            sl.library.CATE = sl.library.CATE,
-                                            validRows = validRowsK)
+    k_fold_CATE_models[[k]] <- learn_CATE_k(
+      df = df_learn,
+      Z_list = Z_list,
+      sl.library.CATE = sl.library.CATE,
+      validRows = validRowsK
+    )
   }
 
   return(k_fold_CATE_models)
@@ -65,8 +67,11 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
   CATE_hat <- df$pseudo_outcome
 
   # pass CATEhat and Z in sorted order corresponding to validRows
-  CATE_hat_model <- SuperLearner::SuperLearner(Y = CATE_hat, X = Z, family = stats::gaussian(),
-                                 cvControl = list(V=10, validRows = validRows), SL.library = sl.library.CATE)
+  CATE_hat_model <- SuperLearner::SuperLearner(
+    Y = CATE_hat, X = Z, family = stats::gaussian(),
+    cvControl = list(V=10, validRows = validRows), 
+    SL.library = sl.library.CATE
+  )
 
   CATE_hat_model <- strip_cate(CATE_hat_model)
 
