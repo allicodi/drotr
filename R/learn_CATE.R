@@ -67,13 +67,20 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
   CATE_hat <- df$pseudo_outcome
 
   # pass CATEhat and Z in sorted order corresponding to validRows
-  CATE_hat_model <- SuperLearner::SuperLearner(
-    Y = CATE_hat, X = Z, family = stats::gaussian(),
-    cvControl = list(V=10, validRows = validRows), 
-    SL.library = sl.library.CATE
-  )
+  V <- length(validRows)
+  CATE_hat_models <- vector(mode = "list", length = V)
 
-  CATE_hat_model <- strip_cate(CATE_hat_model)
+  for(v in 1:V){
+    # fit super learner using ONLY observations in the 
+    # inner validation fold, i.e., ids in validRows[[v]]
+    CATE_hat_models_v <- SuperLearner::SuperLearner(
+      Y = CATE_hat[validRows[[v]]], 
+      X = Z[validRows[[v]], , drop = FALSE], 
+      family = stats::gaussian(),
+      SL.library = sl.library.CATE
+    )
+    CATE_hat_models[[v]] <- strip_cate(CATE_hat_models_v)
+  }
 
-  return(CATE_hat_model)
+  return(CATE_hat_models)
 }
