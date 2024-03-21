@@ -106,34 +106,40 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     # testing- think this is wrong when k > 2
     #num_obs <- nrow(k_fold_assign_and_CATE[k_fold_assign_and_CATE$k %in% k_non_na,])
 
-    aggregated_results <- data.frame(threshold = t,
-                                      aiptw_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$aiptw, na.rm=TRUE),
-                                      se_aiptw_EY_Ad_dZ1 = sqrt((sum(k_fold_EY_Ad_dZ1$var_aug, na.rm=TRUE) / k_folds_non_na) / num_obs),
-                                      plug_in_est_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$plug_in_est, na.rm=TRUE),
-                                      mean_aug_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$mean_aug, na.rm=TRUE),
-                                      aiptw_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$aiptw, na.rm=TRUE),
-                                      se_aiptw_EY_A0_dZ1 = sqrt((sum(k_fold_EY_A0_dZ1$var_aug, na.rm=TRUE) / k_folds_non_na) / num_obs),
-                                      plug_in_est_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$plug_in_est, na.rm=TRUE),
-                                      mean_aug_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$mean_aug, na.rm=TRUE),
-                                      E_dZ1 = mean(k_fold_E_dZ1$E_dZ1, na.rm=TRUE),
-                                      se_E_dZ1 = sqrt((sum(k_fold_E_dZ1$var_E_dZ1, na.rm=TRUE) / k_folds_non_na) / num_obs),
-                                      subgroup_effect = mean(k_fold_subgroup_effect$subgroup_effect, na.rm=TRUE),
-                                      se_subgroup_effect = sqrt((sum(k_fold_subgroup_effect$var_subgroup_effect, na.rm = TRUE) / k_folds_non_na) / num_obs),
-                                      treatment_effect = mean(k_fold_treatment_effect$treatment_effect, na.rm=TRUE),
-                                      se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect, na.rm = TRUE) / k_folds_non_na) / num_obs))
+    aggregated_results <- data.frame(
+      threshold = t,
+      aiptw_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$aiptw, na.rm=TRUE),
+      se_aiptw_EY_Ad_dZ1 = sqrt((sum(k_fold_EY_Ad_dZ1$var_aug, na.rm=TRUE) / k_folds_non_na) / num_obs),
+      plug_in_est_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$plug_in_est, na.rm=TRUE),
+      mean_aug_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$mean_aug, na.rm=TRUE),
+      aiptw_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$aiptw, na.rm=TRUE),
+      se_aiptw_EY_A0_dZ1 = sqrt((sum(k_fold_EY_A0_dZ1$var_aug, na.rm=TRUE) / k_folds_non_na) / num_obs),
+      plug_in_est_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$plug_in_est, na.rm=TRUE),
+      mean_aug_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$mean_aug, na.rm=TRUE),
+      E_dZ1 = mean(k_fold_E_dZ1$E_dZ1, na.rm=TRUE),
+      se_E_dZ1 = sqrt((sum(k_fold_E_dZ1$var_E_dZ1, na.rm=TRUE) / k_folds_non_na) / num_obs),
+      subgroup_effect = mean(k_fold_subgroup_effect$subgroup_effect, na.rm=TRUE),
+      se_subgroup_effect = sqrt((sum(k_fold_subgroup_effect$var_subgroup_effect, na.rm = TRUE) / k_folds_non_na) / num_obs),
+      treatment_effect = mean(k_fold_treatment_effect$treatment_effect, na.rm=TRUE),
+      se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect, na.rm = TRUE) / k_folds_non_na) / num_obs)
+    )
 
-    k_fold_results <- list(k_fold_EY_Ad_dZ1 = k_fold_EY_Ad_dZ1,
-                           k_fold_EY_A0_dZ1 = k_fold_EY_A0_dZ1,
-                           k_fold_E_dZ1 = k_fold_E_dZ1,
-                           k_fold_subgroup_effect = k_fold_subgroup_effect,
-                           k_fold_treatment_effect = k_fold_treatment_effect,
-                           influence_fns = k_fold_inf_fn_matrix)
-
+    k_fold_results <- list(
+      k_fold_EY_Ad_dZ1 = k_fold_EY_Ad_dZ1,
+      k_fold_EY_A0_dZ1 = k_fold_EY_A0_dZ1,
+      k_fold_E_dZ1 = k_fold_E_dZ1,
+      k_fold_subgroup_effect = k_fold_subgroup_effect,
+      k_fold_treatment_effect = k_fold_treatment_effect,
+      influence_fns = k_fold_inf_fn_matrix
+    )
+ 
     decision_df <- k_fold_decisions
 
-    threshold_results <- list(aggregated_results = aggregated_results,
-                              k_fold_results = k_fold_results,
-                              decision_df = decision_df)
+    threshold_results <- list(
+      aggregated_results = aggregated_results,                        
+      k_fold_results = k_fold_results,
+      decision_df = decision_df
+    )
 
     class(threshold_results) <- "Results"
 
