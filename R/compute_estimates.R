@@ -195,74 +195,19 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   # d_pred <- ifelse(CATE_pred < -abs(threshold), 1, 0)
 
   if(sign == "-"){
-    d_pred <- ifelse(CATE_pred$pred < threshold, 1, 0)
+    d_pred <- ifelse(CATE_pred < threshold, 1, 0)
   } else {
-    d_pred <- ifelse(CATE_pred$pred > threshold, 1, 0)
+    d_pred <- ifelse(CATE_pred > threshold, 1, 0)
   }
 
   # idxes of observations that are recommended treatment (d_pred == 1)
   idx_sub <- which(d_pred == 1)
 
   # add decisions to kth fold dataframe to return later on
-  df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred$pred))
+  df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred))
 
   ### Step 2: Find P(d(Z) = 1) by taking mean(d(Z)) created in step 1
   mean_dZ <- mean(d_pred)
-
-  # ---------------------------------------------------------------------------
-  # Helper function to calculate AIPTW
-  # ---------------------------------------------------------------------------
-  calc_aiptw <- function(a, mean_dZ, outcome_model, treatment_model, missingness_model){
-
-    ### Step 3: get 1-prediction from missingness model for everyone in df_est P(Delta = 1 | ...)
-    miss_pred_output_df <- data.frame(a, W)
-    names(miss_pred_output_df)[1] <- A_name
-
-    miss_pred_output <- stats::predict(missingness_model, miss_pred_output_df, type = 'response')
-    miss_pred <- 1 - miss_pred_output$pred # proportion of non-missing observations
-
-    ### Step 4: estimate P(A = a | W)
-    tm_given_rec <- stats::predict(treatment_model, W, type = 'response')
-    tm_given_rec$pred <- ifelse(tm_given_rec$pred < ps_trunc_level, ps_trunc_level, tm_given_rec$pred) #truncate if too small
-
-    if(a == 0){
-      tm_given_rec$pred <- 1 - tm_given_rec$pred
-    }
-
-    ### Step 5: predict from outcome model (muhat) on df_est, setting A = a
-    om_trta_df <- data.frame(a, W)
-    names(om_trta_df)[1] <- A_name
-    om_trta <- stats::predict(outcome_model, om_trta_df, type = 'response')
-
-    ### Step 6: "compute plug-in estimate"
-    plug_in_est <- mean(om_trta$pred[idx_sub])
-
-    ### Step 7: compute augmentation term
-    I_A1_notMiss_d1 <- ifelse(A == a & I_Y == 0 & d_pred == 1, 1, 0)
-    denom <- miss_pred * tm_given_rec$pred * mean_dZ
-    Y_minus_om_trta <- Y - om_trta$pred
-    Y_minus_om_trta <- ifelse(is.na(Y_minus_om_trta), 0, Y_minus_om_trta) # will get 0'd out by indicator, avoid error
-    ind_over_prob <- d_pred / mean_dZ
-    om_trta_minus_plugin <- om_trta$pred - plug_in_est
-
-    augmentation <- (I_A1_notMiss_d1 / denom * Y_minus_om_trta) + (ind_over_prob*om_trta_minus_plugin)
-
-    ### Step 8: compute aiptw estimate = plug-in estimate from 6 + mean(augmentation term from step 7)
-    aiptw <- plug_in_est + mean(augmentation)
-
-    ### Step 9: compute variance of augmentation (used for standard error at end)
-    var_aug <- as.numeric(stats::var(augmentation))
-
-    return(list(
-      a = a,
-      aiptw = aiptw,
-      plug_in_est = plug_in_est,
-      augmentation = augmentation,
-      var_aug = var_aug
-    ))
-  }
-
-  # Call calc_aiptw function for Y(d) and Y(0)
 
   # E[Y(d) | d(Z) = 1]
   aiptw_a_1 <- calc_aiptw(1, mean_dZ, outcome_model, treatment_model, missingness_model)
@@ -328,3 +273,58 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
               df_decisions))
 
 }
+
+# TO DO: Document
+# ---------------------------------------------------------------------------
+# Helper function to calculate AIPTW
+# ---------------------------------------------------------------------------
+calc_aiptw <- function(a, mean_dZ, outcome_model, treatment_model, missingness_model){
+
+  ### Step 3: get 1-prediction from missingness model for everyone in df_est P(Delta = 1 | ...)
+  miss_pred_output_df <- data.frame(a, W)
+  names(miss_pred_output_df)[1] <- A_name
+
+  miss_pred_output <- stats::predict(missingness_model, miss_pred_output_df, type = 'response')
+  miss_pred <- 1 - miss_pred_output$pred # proportion of non-missing observations
+
+  ### Step 4: estimate P(A = a | W)
+  tm_given_rec <- stats::predict(treatment_model, W, type = 'response')
+  tm_given_rec$pred <- ifelse(tm_given_rec$pred < ps_trunc_level, ps_trunc_level, tm_given_rec$pred) #truncate if too small
+
+  if(a == 0){
+    tm_given_rec$pred <- 1 - tm_given_rec$pred
+  }
+
+  ### Step 5: predict from outcome model (muhat) on df_est, setting A = a
+  om_trta_df <- data.frame(a, W)
+  names(om_trta_df)[1] <- A_name
+  om_trta <- stats::predict(outcome_model, om_trta_df, type = 'response')
+
+  ### Step 6: "compute plug-in estimate"
+  plug_in_est <- mean(om_trta$pred[idx_sub])
+
+  ### Step 7: compute augmentation term
+  I_A1_notMiss_d1 <- ifelse(A == a & I_Y == 0 & d_pred == 1, 1, 0)
+  denom <- miss_pred * tm_given_rec$pred * mean_dZ
+  Y_minus_om_trta <- Y - om_trta$pred
+  Y_minus_om_trta <- ifelse(is.na(Y_minus_om_trta), 0, Y_minus_om_trta) # will get 0'd out by indicator, avoid error
+  ind_over_prob <- d_pred / mean_dZ
+  om_trta_minus_plugin <- om_trta$pred - plug_in_est
+
+  augmentation <- (I_A1_notMiss_d1 / denom * Y_minus_om_trta) + (ind_over_prob*om_trta_minus_plugin)
+
+  ### Step 8: compute aiptw estimate = plug-in estimate from 6 + mean(augmentation term from step 7)
+  aiptw <- plug_in_est + mean(augmentation)
+
+  ### Step 9: compute variance of augmentation (used for standard error at end)
+  var_aug <- as.numeric(stats::var(augmentation))
+
+  return(list(
+    a = a,
+    aiptw = aiptw,
+    plug_in_est = plug_in_est,
+    augmentation = augmentation,
+    var_aug = var_aug
+  ))
+}
+

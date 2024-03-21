@@ -81,6 +81,6 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
     )
     CATE_hat_models[[v]] <- strip_cate(CATE_hat_models_v)
   }
-
+  class(CATE_hat_models) <- "avgSuperLearner"
   return(CATE_hat_models)
 }

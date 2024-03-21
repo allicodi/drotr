@@ -1,3 +1,19 @@
+#' Method to average predictions over multiple SuperLearners
+#' 
+#' @param x Object of class \code{avgSuperLearner}
+#' @param newdata Prediction \code{data.frame}
+#' @param ... Other arguments (not used)
+#' @return Vector of predictions on \code{newdata}
+predict.avgSuperLearner <- function(x, newdata, ...){
+  V <- length(x)
+  pred_list <- lapply(x, predict, newdata = newdata)
+  pred_list_sl <- lapply(pred_list, "[[", 1)
+  avg_pred <- as.numeric(
+    Reduce("+", pred_list_sl) / V
+  )
+  return(avg_pred)
+}
+
 # TO DO: Document
 # helper function to eliminate unnecessary input in GLMs
 # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
