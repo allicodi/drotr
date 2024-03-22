@@ -282,11 +282,40 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   }
 
-  muhat_obs_weighted <- muhat_obs_matrix %*% muhat.coef
-  muhat_1_weighted <- muhat_1_matrix %*% muhat.coef
-  muhat_0_weighted <- muhat_0_matrix %*% muhat.coef
-  pihat_weighted <- pihat_matrix %*% pihat.coef
-  deltahat_weighted <- deltahat_matrix %*% deltahat.coef
+  # TEST 1: REPLACE WEIGHTED PREDS WITH TRUE PREDS
+
+  # muhat_obs_weighted <- muhat_obs_matrix %*% muhat.coef
+  # muhat_1_weighted <- muhat_1_matrix %*% muhat.coef
+  # muhat_0_weighted <- muhat_0_matrix %*% muhat.coef
+  # pihat_weighted <- pihat_matrix %*% pihat.coef
+  # deltahat_weighted <- deltahat_matrix %*% deltahat.coef
+
+  sl.outcome.correct <- function(X, an_grp_01){
+    -0.4213183637 +
+      0.0079037187 * X$dy1_scrn_diardays +
+      0.1150761291 * I(X$site == "Kenya") +
+      -0.0539769251 * I(X$site == "Malawi") +
+      0.0788648620 * I(X$site == "Mali") +
+      -0.0250071035 * I(X$site == "India") +
+      -0.1211349999 * I(X$site == "Tanzania") +
+      -0.0058588270 * I(X$site == "Pakistan") +
+      -0.0626945585 * I(X$an_ses_quintile == "2nd quintile of SES") +
+      -0.0246203478 * I(X$an_ses_quintile == "3rd quintile of SES") +
+      0.0214125476 * I(X$an_ses_quintile == "4th quintile of SES") +
+      0.0517797108  * I(X$an_ses_quintile == "5th quintile of SES") +
+      -0.0001681260 * X$agemchild +
+      0.8384232165 * X$lfazscore +
+      -0.0763975679 * I(X$shigella_new > 0) +
+      0.1940622 * I(I(X$shigella_new > 0) * an_grp_01) +
+      -0.007401625 * I(I(X$shigella_new > 0) * X$lfazscore * an_grp_01) +
+      -0.0025 * I(I(X$shigella_new > 0) * X$lfazscore * X$agemchild * an_grp_01)
+  }
+
+  muhat_obs_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = df_sort$an_grp_01)
+  muhat_1_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = 1)
+  muhat_0_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = 0)
+  pihat_weighted <- rep(0.5, nrow(df_sort))
+  deltahat_weighted <- rep(0.04, nrow(df_sort))
 
   # f. Estimate CATE (pseudo-outcome)
   p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (pihat_weighted * (1-deltahat_weighted))
