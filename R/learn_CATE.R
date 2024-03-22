@@ -71,16 +71,20 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
   CATE_hat_models <- vector(mode = "list", length = V)
 
   for(v in 1:V){
-    # fit super learner using ONLY observations in the 
+    # fit super learner using ONLY observations in the
     # inner validation fold, i.e., ids in validRows[[v]]
+
+    # QUESTION - assuming this should also be just 3 folds? so 1/3 split into additional thirds?
     CATE_hat_models_v <- SuperLearner::SuperLearner(
-      Y = CATE_hat[validRows[[v]]], 
-      X = Z[validRows[[v]], , drop = FALSE], 
+      Y = CATE_hat[validRows[[v]]],
+      X = Z[validRows[[v]], , drop = FALSE],
       family = stats::gaussian(),
-      SL.library = sl.library.CATE
+      SL.library = sl.library.CATE,
+      cvControl = list(V = 3)
     )
     CATE_hat_models[[v]] <- strip_cate(CATE_hat_models_v)
   }
+
   class(CATE_hat_models) <- "avgSuperLearner"
   return(CATE_hat_models)
 }

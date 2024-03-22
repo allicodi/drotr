@@ -100,11 +100,8 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_non_na <- which(!is.na(k_fold_EY_Ad_dZ1$var_aug))
     k_folds_non_na <- length(k_non_na)
 
-    # new
+    # get number of observations in the non-NA folds
     num_obs <- nrow(df) * (k_folds_non_na / k_folds)
-
-    # testing- think this is wrong when k > 2
-    #num_obs <- nrow(k_fold_assign_and_CATE[k_fold_assign_and_CATE$k %in% k_non_na,])
 
     aggregated_results <- data.frame(
       threshold = t,
@@ -132,11 +129,11 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_treatment_effect = k_fold_treatment_effect,
       influence_fns = k_fold_inf_fn_matrix
     )
- 
+
     decision_df <- k_fold_decisions
 
     threshold_results <- list(
-      aggregated_results = aggregated_results,                        
+      aggregated_results = aggregated_results,
       k_fold_results = k_fold_results,
       decision_df = decision_df
     )
@@ -216,10 +213,34 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   mean_dZ <- mean(d_pred)
 
   # E[Y(d) | d(Z) = 1]
-  aiptw_a_1 <- calc_aiptw(1, mean_dZ, outcome_model, treatment_model, missingness_model)
+  aiptw_a_1 <- calc_aiptw(a = 1,
+                          A = A,
+                          A_name = A_name,
+                          W = W,
+                          Y = Y,
+                          I_Y = I_Y,
+                          d_pred = d_pred,
+                          mean_dZ = mean_dZ,
+                          outcome_model = outcome_model,
+                          treatment_model = treatment_model,
+                          missingness_model = missingness_model,
+                          ps_trunc_level = ps_trunc_level,
+                          idx_sub = idx_sub)
 
   # E[Y(0) | d(Z) = 1 ]
-  aiptw_a_0 <- calc_aiptw(0, mean_dZ, outcome_model, treatment_model, missingness_model)
+  aiptw_a_0 <- calc_aiptw(a = 0,
+                          A = A,
+                          A_name = A_name,
+                          W = W,
+                          Y = Y,
+                          I_Y = I_Y,
+                          d_pred = d_pred,
+                          mean_dZ = mean_dZ,
+                          outcome_model = outcome_model,
+                          treatment_model = treatment_model,
+                          missingness_model = missingness_model,
+                          ps_trunc_level = ps_trunc_level,
+                          idx_sub = idx_sub)
 
   # E[Y(d) - Y(0)] = E[Y(d) | d(Z) = 1]*P(d(Z) = 1) - E[Y(0) | d(Z) = 1 ]*P(d(Z) = 1)
   treatment_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]) * mean_dZ
@@ -284,7 +305,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 # ---------------------------------------------------------------------------
 # Helper function to calculate AIPTW
 # ---------------------------------------------------------------------------
-calc_aiptw <- function(a, mean_dZ, outcome_model, treatment_model, missingness_model){
+calc_aiptw <- function(a, A, A_name, W, Y, I_Y,
+                       d_pred, mean_dZ, outcome_model, treatment_model, missingness_model,
+                       ps_trunc_level, idx_sub){
 
   ### Step 3: get 1-prediction from missingness model for everyone in df_est P(Delta = 1 | ...)
   miss_pred_output_df <- data.frame(a, W)

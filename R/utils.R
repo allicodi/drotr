@@ -1,5 +1,5 @@
 #' Method to average predictions over multiple SuperLearners
-#' 
+#'
 #' @param x Object of class \code{avgSuperLearner}
 #' @param newdata Prediction \code{data.frame}
 #' @param ... Other arguments (not used)
@@ -69,6 +69,33 @@ strip_cate <- function(cate_model){
     }
   }
   return(cate_model)
+}
+
+# function to apply strip_glm to any SL.glm libraries in nuisance model
+# else if to handle glm within earth
+strip_nuisance <- function(nuisance_model){
+
+  # eliminate cvmodels to save space in nuisance object
+  nuisance_model$cvFitLibrary <- NULL
+
+  # eliminate env to save space in nuisance object
+  nuisance_model$env <- NULL
+
+  for(i in 1:length(nuisance_model$fitLibrary)){
+
+    if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
+      nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
+    } else if(class(nuisance_model$fitLibrary[[i]])[1] == "SL.earth"){
+      if(!is.null(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+        #check for presence of glm.list
+        for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+          nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
+        }
+
+      }
+    }
+  }
+  return(nuisance_model)
 }
 
 #' Print the output of an \code{"otr_results"} object.

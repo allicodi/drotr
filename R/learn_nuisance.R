@@ -143,16 +143,17 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   W_complete <- df_complete[, W_list, drop = FALSE]
 
   # split NA observations into validRows folds (if NA present)
+  # changing V from default 10 --> 3 to have more observations for fitting CATE model later on
   if(nNA > 0){
-    rows_na_Y <- split(sample(1:nNA), rep(1:10, length = nNA))
+    rows_na_Y <- split(sample(1:nNA), rep(1:3, length = nNA))
   }else{
     rows_na_Y <- vector(mode = "list", length = 0L)
   }
 
   # split remaining observations into validRows folds
-  rows_no_na_Y <- split(sample((nNA+1):n), rep(1:10, length = n-nNA))
-  master_validRows <- vector(mode = "list", length = 10)
-  for (vv in seq_len(10)) {
+  rows_no_na_Y <- split(sample((nNA+1):n), rep(1:3, length = n-nNA))
+  master_validRows <- vector(mode = "list", length = 3)
+  for (vv in seq_len(3)) {
     if(length(rows_na_Y) >= vv & length(rows_no_na_Y) >= vv){
       master_validRows[[vv]] <- c(rows_na_Y[[vv]], rows_no_na_Y[[vv]])
     }else if(length(rows_na_Y) < vv){
@@ -172,10 +173,10 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   if(outcome_type == "gaussian"){
     muhat <- SuperLearner::SuperLearner(Y = Y_complete, X = data.frame(A_complete, W_complete), family = stats::gaussian(),
-                          cvControl = list(validRows = muhat_validRows), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
+                          cvControl = list(validRows = muhat_validRows, V = 3), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
   } else {
     muhat <- SuperLearner::SuperLearner(Y = Y_complete, X = data.frame(A_complete, W_complete), family = stats::binomial(),
-                          cvControl = list(validRows = muhat_validRows), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
+                          cvControl = list(validRows = muhat_validRows, V = 3), SL.library = sl.library.outcome, control = list(saveCVFitLibrary = TRUE))
   }
 
   muhat.cvFitLibrary <- muhat$cvFitLibrary
@@ -184,7 +185,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   ### 2 - Fit treatment model ###
 
   pihat <- SuperLearner::SuperLearner(Y = A_vec, X = W, family = stats::binomial(),
-                        cvControl = list(validRows = master_validRows), SL.library = sl.library.treatment, control = list(saveCVFitLibrary = TRUE))
+                        cvControl = list(validRows = master_validRows, V = 3), SL.library = sl.library.treatment, control = list(saveCVFitLibrary = TRUE))
 
   pihat.cvFitLibrary <- pihat$cvFitLibrary
   pihat.coef <- pihat$coef
@@ -192,7 +193,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   ### 3 - Fit missingness model ###
 
   deltahat <- SuperLearner::SuperLearner(Y = I_Y, X = data.frame(A, W), family = stats::binomial(),
-                              cvControl = list(validRows = master_validRows), SL.library = sl.library.missingness, control = list(saveCVFitLibrary = TRUE))
+                              cvControl = list(validRows = master_validRows, V = 3), SL.library = sl.library.missingness, control = list(saveCVFitLibrary = TRUE))
 
   deltahat.cvFitLibrary <- deltahat$cvFitLibrary
   deltahat.coef <- deltahat$coef
@@ -209,7 +210,7 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   pihat_matrix <- matrix(NA, nrow = nrow(df), ncol = n_pihat_lib)
   deltahat_matrix <- matrix(NA, nrow = nrow(df), ncol = n_deltahat_lib)
 
-  for(v in 1:10){
+  for(v in 1:3){
     muhat.v <- muhat.cvFitLibrary[[v]]
     pihat.v <- pihat.cvFitLibrary[[v]]
     deltahat.v <- deltahat.cvFitLibrary[[v]]
@@ -300,68 +301,73 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   reorder_df <- df_sort[order(df_sort$original_id),]
 
   # eliminate cvmodels to save space in nuisance object
-  muhat$cvFitLibrary <- NULL
-  pihat$cvFitLibrary <- NULL
-  deltahat$cvFitLibrary <- NULL
+  # now in nuisance function utils
+
+  # muhat$cvFitLibrary <- NULL
+  # pihat$cvFitLibrary <- NULL
+  # deltahat$cvFitLibrary <- NULL
 
   # eliminate env to save space in nuisance object
-  muhat$env <- NULL
-  pihat$env <- NULL
-  deltahat$env <- NULL
+  # now in nuisance function utils
 
-  # function to eliminate unnecessary input in GLMs
-  # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
-  strip_glm <- function(cm, earth = FALSE) {
-    cm$y = c()
-    cm$model = c()
+  # muhat$env <- NULL
+  # pihat$env <- NULL
+  # deltahat$env <- NULL
 
-    cm$residuals = c()
-    cm$fitted.values = c()
-    cm$effects = c()
-    cm$qr$qr = c()
-    cm$linear.predictors = c()
-    cm$weights = c()
-    cm$prior.weights = c()
-    cm$data = c()
+  # # function to eliminate unnecessary input in GLMs
+  # # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
+  # strip_glm <- function(cm, earth = FALSE) {
+  #   cm$y = c()
+  #   cm$model = c()
+  #
+  #   cm$residuals = c()
+  #   cm$fitted.values = c()
+  #   cm$effects = c()
+  #   cm$qr$qr = c()
+  #   cm$linear.predictors = c()
+  #   cm$weights = c()
+  #   cm$prior.weights = c()
+  #   cm$data = c()
+  #
+  #   cm$family$variance = c()
+  #   cm$family$dev.resids = c()
+  #   cm$family$aic = c()
+  #   cm$family$validmu = c()
+  #   cm$family$simulate = c()
+  #
+  #   # handles earth package using offset from environment, environment dramatically increases size when saved to Rds
+  #   if(earth == TRUE){
+  #     attr(cm$terms,".Environment") = rlang::new_environment(data = list(offset = NULL), parent = baseenv())
+  #   } else {
+  #     attr(cm$terms,".Environment") = c()
+  #   }
+  #
+  #   attr(cm$formula,".Environment") = c()
+  #
+  #   cm
+  # }
 
-    cm$family$variance = c()
-    cm$family$dev.resids = c()
-    cm$family$aic = c()
-    cm$family$validmu = c()
-    cm$family$simulate = c()
+  # # function to apply strip_glm to any SL.glm libraries in nuisance model
+  # # else if to handle glm within earth
+  # strip_nuisance <- function(nuisance_model){
+  #   for(i in 1:length(nuisance_model$fitLibrary)){
+  #
+  #     if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
+  #       nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
+  #     } else if(class(nuisance_model$fitLibrary[[i]])[1] == "SL.earth"){
+  #       if(!is.null(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+  #         #check for presence of glm.list
+  #         for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
+  #           nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
+  #         }
+  #
+  #       }
+  #     }
+  #   }
+  #   return(nuisance_model)
+  # }
 
-    # handles earth package using offset from environment, environment dramatically increases size when saved to Rds
-    if(earth == TRUE){
-      attr(cm$terms,".Environment") = rlang::new_environment(data = list(offset = NULL), parent = baseenv())
-    } else {
-      attr(cm$terms,".Environment") = c()
-    }
-
-    attr(cm$formula,".Environment") = c()
-
-    cm
-  }
-
-  # function to apply strip_glm to any SL.glm libraries in nuisance model
-  # else if to handle glm within earth
-  strip_nuisance <- function(nuisance_model){
-    for(i in 1:length(nuisance_model$fitLibrary)){
-
-      if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
-        nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
-      } else if(class(nuisance_model$fitLibrary[[i]])[1] == "SL.earth"){
-        if(!is.null(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
-          #check for presence of glm.list
-          for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
-            nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
-          }
-
-        }
-      }
-    }
-    return(nuisance_model)
-  }
-
+  # now coming from utils... test
   muhat <- strip_nuisance(muhat)
   pihat <- strip_nuisance(pihat)
   deltahat <- strip_nuisance(deltahat)
