@@ -282,14 +282,13 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
 
   }
 
-  # TEST 1: REPLACE WEIGHTED PREDS WITH TRUE PREDS
+  muhat_obs_weighted <- muhat_obs_matrix %*% muhat.coef
+  muhat_1_weighted <- muhat_1_matrix %*% muhat.coef
+  muhat_0_weighted <- muhat_0_matrix %*% muhat.coef
+  pihat_weighted <- pihat_matrix %*% pihat.coef
+  deltahat_weighted <- deltahat_matrix %*% deltahat.coef
 
-  # muhat_obs_weighted <- muhat_obs_matrix %*% muhat.coef
-  # muhat_1_weighted <- muhat_1_matrix %*% muhat.coef
-  # muhat_0_weighted <- muhat_0_matrix %*% muhat.coef
-  # pihat_weighted <- pihat_matrix %*% pihat.coef
-  # deltahat_weighted <- deltahat_matrix %*% deltahat.coef
-
+  # check that this is the same as passing in correct models
   sl.outcome.correct <- function(X, an_grp_01){
     -0.4213183637 +
       0.0079037187 * X$dy1_scrn_diardays +
@@ -311,11 +310,12 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
       -0.0025 * I(I(X$shigella_new > 0) * X$lfazscore * X$agemchild * an_grp_01)
   }
 
-  muhat_obs_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = df_sort$an_grp_01)
-  muhat_1_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = 1)
-  muhat_0_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = 0)
-  pihat_weighted <- rep(0.5, nrow(df_sort))
-  deltahat_weighted <- rep(0.04, nrow(df_sort))
+  # test hardcode
+  # muhat_obs_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = df_sort$an_grp_01)
+  # muhat_1_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = 1)
+  # muhat_0_weighted <- sl.outcome.correct(X = df_sort, an_grp_01 = 0)
+  # pihat_weighted <- rep(0.5, nrow(df_sort))
+  # deltahat_weighted <- rep(0.04, nrow(df_sort))
 
   # f. Estimate CATE (pseudo-outcome)
   p1 <- ((2*A_vec - 1)*as.numeric(!I_Y) ) / (pihat_weighted * (1-deltahat_weighted))
@@ -323,80 +323,14 @@ learn_nuisance_k <- function(df, Y_name, A_name, W_list,
   p2 <- ifelse(is.na(p2), 0, p2)
   p3 <- muhat_1_weighted - muhat_0_weighted
 
-  CATE_hat <- p1*p2 + p3
+  # once confirmed here, remove hard coding, use wrappers for increasing sample size on the cluster
+  CATE_hat <- p1*p2 + p3 + rnorm(nrow(df_sort), 0, 1/sqrt(nrow(df_sort)))
 
   # reorder CATE hat to correspond to original dataframe
   df_sort$CATE_hat <- CATE_hat
   reorder_df <- df_sort[order(df_sort$original_id),]
 
-  # eliminate cvmodels to save space in nuisance object
-  # now in nuisance function utils
-
-  # muhat$cvFitLibrary <- NULL
-  # pihat$cvFitLibrary <- NULL
-  # deltahat$cvFitLibrary <- NULL
-
-  # eliminate env to save space in nuisance object
-  # now in nuisance function utils
-
-  # muhat$env <- NULL
-  # pihat$env <- NULL
-  # deltahat$env <- NULL
-
-  # # function to eliminate unnecessary input in GLMs
-  # # Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
-  # strip_glm <- function(cm, earth = FALSE) {
-  #   cm$y = c()
-  #   cm$model = c()
-  #
-  #   cm$residuals = c()
-  #   cm$fitted.values = c()
-  #   cm$effects = c()
-  #   cm$qr$qr = c()
-  #   cm$linear.predictors = c()
-  #   cm$weights = c()
-  #   cm$prior.weights = c()
-  #   cm$data = c()
-  #
-  #   cm$family$variance = c()
-  #   cm$family$dev.resids = c()
-  #   cm$family$aic = c()
-  #   cm$family$validmu = c()
-  #   cm$family$simulate = c()
-  #
-  #   # handles earth package using offset from environment, environment dramatically increases size when saved to Rds
-  #   if(earth == TRUE){
-  #     attr(cm$terms,".Environment") = rlang::new_environment(data = list(offset = NULL), parent = baseenv())
-  #   } else {
-  #     attr(cm$terms,".Environment") = c()
-  #   }
-  #
-  #   attr(cm$formula,".Environment") = c()
-  #
-  #   cm
-  # }
-
-  # # function to apply strip_glm to any SL.glm libraries in nuisance model
-  # # else if to handle glm within earth
-  # strip_nuisance <- function(nuisance_model){
-  #   for(i in 1:length(nuisance_model$fitLibrary)){
-  #
-  #     if(class(nuisance_model$fitLibrary[[i]][[1]])[1] == "glm"){
-  #       nuisance_model$fitLibrary[[i]][[1]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]])
-  #     } else if(class(nuisance_model$fitLibrary[[i]])[1] == "SL.earth"){
-  #       if(!is.null(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
-  #         #check for presence of glm.list
-  #         for(earth_glm in 1:length(nuisance_model$fitLibrary[[i]][[1]]$glm.list)){
-  #           nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]] <- strip_glm(nuisance_model$fitLibrary[[i]][[1]]$glm.list[[earth_glm]], earth = TRUE)
-  #         }
-  #
-  #       }
-  #     }
-  #   }
-  #   return(nuisance_model)
-  # }
-
-  # now coming from utils... test
+  # eliminate parts of glm that are too large
   muhat <- strip_nuisance(muhat)
   pihat <- strip_nuisance(pihat)
   deltahat <- strip_nuisance(deltahat)
