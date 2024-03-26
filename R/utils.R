@@ -14,9 +14,14 @@ predict.avgSuperLearner <- function(x, newdata, ...){
   return(avg_pred)
 }
 
-# TO DO: Document
-# helper function to eliminate unnecessary input in GLMs
-# Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
+#' Helper function to remove unnecessary output from SuperLearner model to reduce output size
+#'
+#' Reference: https://www.r-bloggers.com/2019/12/need-to-save-rs-lm-or-glm-models-trim-the-fat/
+#'
+#' @param cm SuperLearner GLM or Earth model
+#' @param earth flag for if model is SuperLearner Earth model, defaults to GLM
+#'
+#' @return model with unnecessary features removed
 strip_glm <- function(cm, earth = FALSE) {
   cm$cvFitLibrary <- NULL
   cm$env <- NULL
@@ -50,9 +55,11 @@ strip_glm <- function(cm, earth = FALSE) {
   cm
 }
 
-# TO DO: Document
-# helper function to apply strip_glm to any glm libraries in nuisance model
-# else if to handle glm within earth
+#' Helper function to apply strip_glm function to libraries in CATE model
+#'
+#' @param cate_model CATE model fit by SuperLearner
+#'
+#' @return cate_model of reduced output size
 strip_cate <- function(cate_model){
   for(i in 1:length(cate_model$fitLibrary)){
 
@@ -71,8 +78,11 @@ strip_cate <- function(cate_model){
   return(cate_model)
 }
 
-# function to apply strip_glm to any SL.glm libraries in nuisance model
-# else if to handle glm within earth
+#' Helper function to apply strip_glm function to libraries in Nuisance model
+#'
+#' @param nuisance_model Nuisance model fit by SuperLearner
+#'
+#' @return Nuisance model of reduced output size
 strip_nuisance <- function(nuisance_model){
 
   # eliminate cvmodels to save space in nuisance object

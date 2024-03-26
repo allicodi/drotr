@@ -1,2 +1,6 @@
 sandbox/*
 .Rapp.history
+test.R
+README.html
+.Rbuildignore
+Makefile

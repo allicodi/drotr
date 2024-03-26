@@ -73,8 +73,6 @@ learn_CATE_k <- function(df, Z_list, sl.library.CATE, validRows){
   for(v in 1:V){
     # fit super learner using ONLY observations in the
     # inner validation fold, i.e., ids in validRows[[v]]
-
-    # QUESTION - assuming this should also be just 3 folds? so 1/3 split into additional thirds?
     CATE_hat_models_v <- SuperLearner::SuperLearner(
       Y = CATE_hat[validRows[[v]]],
       X = Z[validRows[[v]], , drop = FALSE],

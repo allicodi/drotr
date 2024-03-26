@@ -301,10 +301,31 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 
 }
 
-# TO DO: Document
-# ---------------------------------------------------------------------------
-# Helper function to calculate AIPTW
-# ---------------------------------------------------------------------------
+#' Function to calculate AIPTW
+#'
+#' @param a value of treatment to set for all observations
+#' @param A vector of observed treatments
+#' @param A_name name of treatment variable
+#' @param W dataframe of covariates
+#' @param Y vector of observed outcome variable
+#' @param I_Y indicator that Y is missing (I_Y = 1 if missing, I_Y = 0 if observed)
+#' @param d_pred vector of treatment decisions (d_pred = 1 if recommend treatment under rule)
+#' @param mean_dZ proportion recommended treatment under rule
+#' @param outcome_model outcome Nuisance model
+#' @param treatment_model treatment Nuisance model
+#' @param missingness_model missingness Nuisance model
+#' @param ps_trunc_level threshold to truncate propensity score
+#' @param idx_sub indices of observations that are recommended treatment (d_pred == 1)
+#'
+#' @returns
+#' \describe{
+#'         (1) a - value of treatment
+#'         (2) aiptw - vector aiptw estimators
+#'         (3) plug_in_est - vector of plug-in estimators
+#'         (4) augmentation - vector of augmentation terms
+#'         (5) var_aug - variance of augmentation term
+#'         }
+#' @keywords internal
 calc_aiptw <- function(a, A, A_name, W, Y, I_Y,
                        d_pred, mean_dZ, outcome_model, treatment_model, missingness_model,
                        ps_trunc_level, idx_sub){
