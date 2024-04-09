@@ -108,14 +108,14 @@ strip_nuisance <- function(nuisance_model){
   return(nuisance_model)
 }
 
-#' Print the output of an \code{"otr_results"} object.
+#' Print the output of a \code{"full_otr_results"} object.
 #'
-#' @param x An \code{"otr_results"} object.
+#' @param x A \code{"full_otr_results"} object.
 #' @param ... Other arguments (not used)
 #'
-#' @method print otr_results
+#' @method print full_otr_results
 #' @export
-print.otr_results <- function(x, ...){
+print.full_otr_results <- function(x, ...){
 
   res <- x$results
 
@@ -131,21 +131,25 @@ print.otr_results <- function(x, ...){
         sub$aggregated_results$aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1,
         sub$aggregated_results$subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect),
       c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$se_treatment_effect),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect)
     )
 
@@ -153,6 +157,93 @@ print.otr_results <- function(x, ...){
                    "E[Y(0) | d(Z) = 1]",
                    "E[d(Z) = 1]",
                    "E[Y(d) - Y(0) | d(Z) = 1]",
+                   "E[Y(1) - Y(d) | d(Z) = 0]",
+                   "E[Y(d) - Y(0)]")
+
+    col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
+
+    rownames(tmp) <- row_names
+    colnames(tmp) <- col_names
+
+    # Print header with dashed line
+    cat(paste("                      Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
+    cat(paste(rep("-", 105), collapse = ""), "\n")
+    cat(sprintf("%-30s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+    cat(paste(rep("-", 105), collapse = ""), "\n")
+
+    for(i in 1:nrow(tmp)){
+      row_to_print <- tmp[i, ]
+
+      # Adjust the widths as needed
+      formatted_row <- sprintf("%-30s%-20s%-20s%-20s%-20s\n",
+                               row.names(row_to_print),
+                               round(row_to_print[1],4),
+                               round(row_to_print[2],4),
+                               round(row_to_print[3],4),
+                               round(row_to_print[4],4))
+
+      # Print the formatted row
+      cat(paste(formatted_row))
+    }
+
+    cat(paste("\nCovariates used in decision rule: ", paste(x$Z_list, collapse = ", "), "\n\n"))
+
+  }
+
+  invisible(tmp)
+
+}
+
+#' Print the output of a \code{"full_otr_results"} object.
+#'
+#' @param x An \code{"otr_results"} object.
+#' @param ... Other arguments (not used)
+#'
+#' @method print otr_results
+#' @export
+print.otr_results <- function(x, ...){
+
+  res <- x
+
+  threshold_names <- grep("^threshold", names(res), value=TRUE)
+
+  for(t in 1:length(threshold_names)){
+    threshold <- threshold_names[t]
+
+    sub <- res[[threshold]]
+
+    tmp <- data.frame(
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1,
+        sub$aggregated_results$subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0,
+        sub$aggregated_results$treatment_effect),
+      c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$se_subgroup_effect_dZ0,
+        sub$aggregated_results$se_treatment_effect),
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
+        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect),
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
+        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect)
+    )
+
+    row_names <- c("E[Y(d) | d(Z) = 1]",
+                   "E[Y(0) | d(Z) = 1]",
+                   "E[d(Z) = 1]",
+                   "E[Y(d) - Y(0) | d(Z) = 1]",
+                   "E[Y(1) - Y(d) | d(Z) = 0]",
                    "E[Y(d) - Y(0)]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
@@ -191,28 +282,45 @@ print.otr_results <- function(x, ...){
 
 #' Compare outcomes under different treatment rules
 #'
-#' @param res_rule1 An \code{"otr_results"} object for treatment rule 1
-#' @param res_rule2 An \code{"otr_results"} object for treatment rule 2
-#' @param threshold1 threshold to use for treatment rule 1
-#' @param threshold2 threshold to use for treatment rule 2
+#' @param res_rule1 An \code{"otr_results"} object or \code{"full_otr_results"} object for treatment rule 1
+#' @param res_rule2 An \code{"otr_results"} object or \code{"full_otr_results"} object for treatment rule 2
+#' @param threshold threshold to use for comparison of both rules (must appear in both otr_results objects)
 #' @param rule1_comp Effect type for rule 1 to use in comparison ("treatment effect"/"te" or "subgroup effect"/"se")
 #' @param rule2_comp Effect type for rule 2 to use in comparison ("treatment effect"/"te" or "subgroup effect"/"se")
 #' @param ... Other arguments (not used)
 #'
 #' @returns dataframe containing expected value and variance for comparison
 #' @export
-compare.otr_results <- function(res_rule1, res_rule2, threshold1, threshold2, rule1_comp, rule2_comp, ...){
+compare.otr_results <- function(res_rule1, res_rule2, threshold, rule1_comp, rule2_comp, ...){
+
+  # if just passed in otr_results object, put in list (so same format as full_otr_results)
+  if(class(res_rule1) == "otr_results"){
+    res_rule1 <- list(results = res_rule1)
+  }
+
+  if(class(res_rule2) == "otr_results"){
+    res_rule2 <- list(results = res_rule2)
+  }
+
   # get name of threshold to pull results
-  t_name1 <- paste("threshold = ", threshold1)
-  t_name2 <- paste("threshold = ", threshold2)
+  t_name <- paste("threshold = ", threshold)
 
   # get k fold assignments in each rule
-  k_fold_assignments_rule1 <- res_rule1$results[[t_name1]]$decision_df
-  k_fold_assignments_rule2 <- res_rule2$results[[t_name2]]$decision_df
+  k_fold_assignments_rule1 <- res_rule1$results[[t_name]]$decision_df
+  k_fold_assignments_rule2 <- res_rule2$results[[t_name]]$decision_df
+
+  # if either threshold wasn't found, error out
+  if(is.null(k_fold_assignments_rule1) & is.null(k_fold_assignments_rule2)){
+    stop(print("Thresholds for rule 1 and rule 2 not found"))
+  } else if(is.null(k_fold_assignments_rule1)){
+    stop(print("Threshold for rule 1 not found"))
+  } else if(is.null(k_fold_assignments_rule2)){
+    stop(print("Threshold for rule 2 not found"))
+  }
 
   # get influence functions from each fold and bind into single matrix for each rule
-  inf_fns_rule1 <- res_rule1$results[[t_name1]]$k_fold_results$influence_fns
-  inf_fns_rule2 <- res_rule2$results[[t_name2]]$k_fold_results$influence_fns
+  inf_fns_rule1 <- res_rule1$results[[t_name]]$k_fold_results$influence_fns
+  inf_fns_rule2 <- res_rule2$results[[t_name]]$k_fold_results$influence_fns
 
   inf_fns_rule1 <- do.call(rbind, inf_fns_rule1)
   inf_fns_rule2 <- do.call(rbind, inf_fns_rule2)
@@ -240,24 +348,58 @@ compare.otr_results <- function(res_rule1, res_rule2, threshold1, threshold2, ru
   cov_matrix <- stats::cov(inf_fn_matrix) / dim(inf_fn_matrix)[1]
 
   # Pull AIPTWs and make gradient for comparing rules
+
+  # ORIGINAL THAT MIGHT HAVE BEEN WRONG
+  # I think it goes "se" then "te"??
+  # this is "te" in slot 4, "se" in slot 5
+
+  # if(rule1_comp == "treatment effect" | rule1_comp == "te"){
+  #   aiptw_1 <- res_rule1$results[[t_name1]]$aggregated_results$treatment_effect
+  #   gradient_1 <- c(0, 0, 0, 1, 0)
+  # } else if(rule1_comp == "subgroup effect" | rule1_comp == "se"){
+  #   aiptw_1 <- res_rule1$results[[t_name1]]$aggregated_results$subgroup_effect
+  #   gradient_1 <- c(0, 0, 0, 0, 1)
+  # } else{
+  #   return(print("Must enter treatment effect, te, subgroup effect, or se"))
+  # }
+  #
+  # if(rule2_comp == "treatment effect" | rule2_comp == "te"){
+  #   aiptw_2 <- res_rule2$results[[t_name2]]$aggregated_results$treatment_effect
+  #   gradient_2 <- c(0, 0, 0, -1, 0)
+  # } else if(rule2_comp == "subgroup effect" | rule2_comp == "se"){
+  #   aiptw_2 <- res_rule2$results[[t_name2]]$aggregated_results$subgroup_effect
+  #   gradient_2 <- c(0, 0, 0, 0, -1)
+  # } else{
+  #   return(print("Must enter treatment effect, te, subgroup effect, or se"))
+  # }
+  #
+  # gradient <- c(gradient_1, gradient_2)
+
+  # Updated for subgroup effect in untreated
   if(rule1_comp == "treatment effect" | rule1_comp == "te"){
-    aiptw_1 <- res_rule1$results[[t_name1]]$aggregated_results$treatment_effect
-    gradient_1 <- c(0, 0, 0, 1, 0)
+    aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$treatment_effect
+    gradient_1 <- c(0, 0, 0, 0, 0, 0, 0, 0, 1)
   } else if(rule1_comp == "subgroup effect" | rule1_comp == "se"){
-    aiptw_1 <- res_rule1$results[[t_name1]]$aggregated_results$subgroup_effect
-    gradient_1 <- c(0, 0, 0, 0, 1)
+    aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$subgroup_effect
+    gradient_1 <- c(0, 0, 0, 0, 0, 0, 1, 0, 0)
+  } else if(rule1_comp == "subgroup effect untreated" | rule1_comp == "se_dZ0"){
+    aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$subgroup_effect_dZ0
+    gradient_1 <- c(0, 0, 0, 0, 0, 0, 0, 1, 0)
   } else{
-    return(print("Must enter treatment effect, te, subgroup effect, or se"))
+    stop(print("Must enter treatment effect, te, subgroup effect, or se"))
   }
 
   if(rule2_comp == "treatment effect" | rule2_comp == "te"){
-    aiptw_2 <- res_rule2$results[[t_name2]]$aggregated_results$treatment_effect
-    gradient_2 <- c(0, 0, 0, -1, 0)
+    aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$treatment_effect
+    gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, 0, -1)
   } else if(rule2_comp == "subgroup effect" | rule2_comp == "se"){
-    aiptw_2 <- res_rule2$results[[t_name2]]$aggregated_results$subgroup_effect
-    gradient_2 <- c(0, 0, 0, 0, -1)
-  } else{
-    return(print("Must enter treatment effect, te, subgroup effect, or se"))
+    aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$subgroup_effect
+    gradient_2 <- c(0, 0, 0, 0, 0, 0, -1, 0, 0)
+  } else if(rule1_comp == "subgroup effect untreated" | rule1_comp == "se_dZ0"){
+    aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$subgroup_effect_dZ0
+    gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, -1, 0)
+  } else {
+    stop(print("Must enter treatment effect, te; subgroup effect, se; or subgroup effect untreated, se_dZ0"))
   }
 
   gradient <- c(gradient_1, gradient_2)
@@ -266,11 +408,10 @@ compare.otr_results <- function(res_rule1, res_rule2, threshold1, threshold2, ru
   exp_val_of_comparison <- aiptw_1 - aiptw_2
   var_of_comparison <- t(gradient) %*% cov_matrix %*% gradient
 
-  compare_rules <- data.frame(Z_list_1 = paste(res_rule1$Z_list, collapse=", "),
-                              threshold_1 = threshold1,
+  compare_rules <- data.frame(Z_list_1 = paste(res_rule1$results$Z_list, collapse=", "),
+                              threshold = threshold,
                               rule1_comp = rule1_comp,
-                              Z_list_2 = paste(res_rule2$Z_list, collapse=", "),
-                              threshold_2 = threshold2,
+                              Z_list_2 = paste(res_rule2$results$Z_list, collapse=", "),
                               rule2_comp = rule2_comp,
                               expected_val_of_comparison = exp_val_of_comparison,
                               var_of_comparison = var_of_comparison)
@@ -293,18 +434,26 @@ print.otr_comparison <- function(x, ...){
   # Make print statements for group 1
   if(x$rule1_comp == "te" | x$rule1_comp == "treatment effect"){
     rule1_type <- "Treatment Effect E[Y(d) - Y(0)]"
-  } else rule1_type <- "Subgroup Effect E[Y(d) - Y(0) | d(Z) = 1]"
+  } else if (x$rule1_comp == "se" | x$rule1_comp == "subgroup effect"){
+    rule1_type <- "Subgroup Effect E[Y(d) - Y(0) | d(Z) = 1]"
+  } else{
+    rule1_type <- "Subgroup Effect in Untreated E[Y(1) - Y(d) | d(Z) = 0]"
+  }
 
-  threshold1 <- x$threshold_1
+  threshold1 <- x$threshold
 
   rule1 <- paste(rule1_type, " for rule 1 at threshold = ", threshold1)
 
   # Make print statements for group 2
   if(x$rule2_comp == "te" | x$rule2_comp == "treatment effect"){
     rule2_type <- "Treatment Effect E[Y(d) - Y(0)]"
-  } else rule2_type <- "Subgroup Effect E[Y(d) - Y(0) | d(Z) = 1]"
+  } else if (x$rule2_comp == "se" | x$rule2_comp == "subgroup effect"){
+    rule2_type <- "Subgroup Effect E[Y(d) - Y(0) | d(Z) = 1]"
+  } else{
+    rule2_type <- "Subgroup Effect in Untreated E[Y(1) - Y(d) | d(Z) = 0]"
+  }
 
-  threshold2 <- x$threshold_2
+  threshold2 <- x$threshold
 
   rule2 <- paste(rule2_type, " for rule 2 at threshold = ", threshold2)
 
@@ -323,6 +472,5 @@ print.otr_comparison <- function(x, ...){
 
   cat(paste("\n Rule 1: Z = ", x$Z_list_1))
   cat(paste("\n Rule 2: Z = ", x$Z_list_2))
-
 
 }

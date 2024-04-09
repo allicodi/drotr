@@ -102,8 +102,10 @@ estimate_OTR <- function(df,
   results$nuisance_models <- nuisance_models
   results$CATE_models <- CATE_models
   results$Z_list <- Z_list
+  results$results$Z_list <- Z_list # adding in two places so full object print or just results subsection prints
 
-  class(results) <- "otr_results"
+  class(results$results) <- "otr_results"
+  class(results) <- "full_otr_results"
 
   return(results)
 

@@ -49,6 +49,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_subgroup_effect <- vector("list", length = k_folds)
     k_fold_treatment_effect <- vector("list", length = k_folds)
     k_fold_inf_fn_matrix <- vector("list", length = k_folds)
+    k_fold_subgroup_effect_dZ0 <- vector("list", length = k_folds)
     k_fold_decisions <- data.frame()
 
     for(k in 1:k_folds){
@@ -72,14 +73,15 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                                                CATE_model, nuisance_model,
                                                sign, t, ps_trunc_level)
 
-      k_fold_EY_Ad_dZ1[[k]] <- compute_est_output[[1]]
-      k_fold_EY_A0_dZ1[[k]] <- compute_est_output[[2]]
-      k_fold_E_dZ1[[k]] <- compute_est_output[[3]]
-      k_fold_subgroup_effect[[k]] <- compute_est_output[[4]]
-      k_fold_treatment_effect[[k]] <- compute_est_output[[5]]
-      k_fold_inf_fn_matrix[[k]] <- compute_est_output[[6]]
+      k_fold_EY_Ad_dZ1[[k]] <- compute_est_output$EY_Ad_dZ1
+      k_fold_EY_A0_dZ1[[k]] <- compute_est_output$EY_A0_dZ1
+      k_fold_E_dZ1[[k]] <- compute_est_output$E_dZ1
+      k_fold_subgroup_effect[[k]] <- compute_est_output$subgroup_effect
+      k_fold_treatment_effect[[k]] <- compute_est_output$treatment_effect
+      k_fold_subgroup_effect_dZ0[[k]] <- compute_est_output$subgroup_effect_dZ0
+      k_fold_inf_fn_matrix[[k]] <- compute_est_output$inf_fn_matrix
 
-      kth_decision_df <- compute_est_output[[7]]
+      kth_decision_df <- compute_est_output$df_decisions
 
       k_fold_decisions <- rbind(k_fold_decisions, data.frame(id = kth_decision_df$id,
                                                              k = k,
@@ -93,6 +95,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_EY_A0_dZ1 <- do.call(rbind, k_fold_EY_A0_dZ1)
     k_fold_E_dZ1 <- do.call(rbind, k_fold_E_dZ1)
     k_fold_subgroup_effect <- do.call(rbind, k_fold_subgroup_effect)
+    k_fold_subgroup_effect_dZ0 <- do.call(rbind, k_fold_subgroup_effect_dZ0)
     k_fold_treatment_effect <- do.call(rbind, k_fold_treatment_effect)
 
     # If any folds were NA, do not count in computing overall results
@@ -117,6 +120,8 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       se_E_dZ1 = sqrt((sum(k_fold_E_dZ1$var_E_dZ1, na.rm=TRUE) / k_folds_non_na) / num_obs),
       subgroup_effect = mean(k_fold_subgroup_effect$subgroup_effect, na.rm=TRUE),
       se_subgroup_effect = sqrt((sum(k_fold_subgroup_effect$var_subgroup_effect, na.rm = TRUE) / k_folds_non_na) / num_obs),
+      subgroup_effect_dZ0 = mean(k_fold_subgroup_effect_dZ0$subgroup_effect_dZ0, na.rm=TRUE),
+      se_subgroup_effect_dZ0 = sqrt((sum(k_fold_subgroup_effect_dZ0$var_subgroup_effect_dZ0, na.rm = TRUE) / k_folds_non_na) / num_obs),
       treatment_effect = mean(k_fold_treatment_effect$treatment_effect, na.rm=TRUE),
       se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect, na.rm = TRUE) / k_folds_non_na) / num_obs)
     )
@@ -126,6 +131,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_EY_A0_dZ1 = k_fold_EY_A0_dZ1,
       k_fold_E_dZ1 = k_fold_E_dZ1,
       k_fold_subgroup_effect = k_fold_subgroup_effect,
+      k_fold_subgroup_effect_dZ0 = k_fold_subgroup_effect_dZ0,
       k_fold_treatment_effect = k_fold_treatment_effect,
       influence_fns = k_fold_inf_fn_matrix
     )
@@ -205,6 +211,7 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 
   # idxes of observations that are recommended treatment (d_pred == 1)
   idx_sub <- which(d_pred == 1)
+  idx_sub0 <- which(d_pred == 0) # for effect in d(Z) = 0 subgroup
 
   # add decisions to kth fold dataframe to return later on
   df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred))
@@ -242,63 +249,111 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
                           ps_trunc_level = ps_trunc_level,
                           idx_sub = idx_sub)
 
+  # E[Y(d) | d(Z) = 0]
+  aiptw_a_1_dZ0 <- calc_aiptw(a = 1,
+                          A = A,
+                          A_name = A_name,
+                          W = W,
+                          Y = Y,
+                          I_Y = I_Y,
+                          d_pred = 1 - d_pred,
+                          mean_dZ = 1 - mean_dZ,
+                          outcome_model = outcome_model,
+                          treatment_model = treatment_model,
+                          missingness_model = missingness_model,
+                          ps_trunc_level = ps_trunc_level,
+                          idx_sub = idx_sub0)
+
+  # E[Y(0) | d(Z) = 0 ]
+  aiptw_a_0_dZ0 <- calc_aiptw(a = 0,
+                          A = A,
+                          A_name = A_name,
+                          W = W,
+                          Y = Y,
+                          I_Y = I_Y,
+                          d_pred = 1 - d_pred,
+                          mean_dZ = 1 - mean_dZ,
+                          outcome_model = outcome_model,
+                          treatment_model = treatment_model,
+                          missingness_model = missingness_model,
+                          ps_trunc_level = ps_trunc_level,
+                          idx_sub = idx_sub0)
+
   # E[Y(d) - Y(0)] = E[Y(d) | d(Z) = 1]*P(d(Z) = 1) - E[Y(0) | d(Z) = 1 ]*P(d(Z) = 1)
   treatment_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]) * mean_dZ
 
   # E[Y(d) - Y(0) | d(Z) = 1] = E[Y(d) | d(Z) = 1] - E[Y(0) | d(Z) = 1 ]
   subgroup_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']])
 
+  # E[Y(d) - Y(0) | d(Z) = 0] = E[Y(d) | d(Z) = 0] - E[Y(0) | d(Z) = 0 ]
+  subgroup_effect_dZ0 <- (aiptw_a_1_dZ0[['aiptw']] - aiptw_a_0_dZ0[['aiptw']])
+
   ### Step 10: estimate of influence function & its variance
   mean_dZ <- mean(d_pred)
   augmentation_mean_dZ <- d_pred - mean_dZ
 
-  # "n" x 3 matrix
+  mean_dZ0 <- mean(1 - d_pred)
+  augmentation_mean_dZ0 <- (1 -d_pred) - mean_dZ0
+
+  # "n" x 6 matrix
   inf_fn_matrix <- cbind(
     aiptw_a_1$augmentation,
     aiptw_a_0$augmentation,
-    augmentation_mean_dZ
+    augmentation_mean_dZ,
+    aiptw_a_1_dZ0$augmentation,
+    aiptw_a_0_dZ0$augmentation,
+    augmentation_mean_dZ0
   )
 
-  # 3x3 covariance matrix
+  # 6x6 covariance matrix
   cov_matrix <- stats::cov(inf_fn_matrix)
   #var_mean_dZ <- as.numeric(stats::var(augmentation_mean_dZ)) should be the same as cov_matrix[3,3]
 
   # Effect in optimally treated subgroup
   gradient_g_subgroup <- matrix(c(
-    1, -1, 0
+    1, -1, 0, 0, 0, 0
   ), ncol = 1)
 
   var_subgroup_effect <- t(gradient_g_subgroup) %*% cov_matrix %*% gradient_g_subgroup
 
+  # Effect in NOT optimally treated subgroup
+  gradient_g_subgroup_dZ0 <- matrix(c(
+    0, 0, 0, 1, -1, 0
+  ), ncol = 1)
+
+  var_subgroup_effect_dZ0 <- t(gradient_g_subgroup_dZ0) %*% cov_matrix %*% gradient_g_subgroup_dZ0
+
   # Effect overall
   gradient_g <- matrix(c(
-    mean_dZ, -mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]
+    mean_dZ, -mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']], 0, 0, 0
   ) , ncol = 1)
 
   var_treatment_effect <- t(gradient_g) %*% cov_matrix %*% gradient_g
 
   # add columns for the influence functions of subgroup_effect and treatment_effect
   inf_fn_subgroup_effect <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup)
+  inf_fn_subgroup_effect_dZ0 <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup_dZ0)
   inf_fn_treatment_effect <- as.numeric(inf_fn_matrix %*% gradient_g)
-  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_treatment_effect)
+  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect)
 
   # return  (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
   #         (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
   #         (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
   #         (4) dataframe with E[Y(0) - Y(1) | d(Z) = 1] -- estimated subgroup effect
   #         (5) dataframe with E[Y(0) - Y(1) ] -- overall treatment effect among optimally treated
+  #         (6) dataframe with E[Y(0) - Y(1) | d(Z) = 0] -- estimated subgroup effect in the untreated
   #         (6) influence function matrix
   #         (7) original kth fold data with corresponding treatment decisions
-  return(list(data.frame(aiptw = aiptw_a_1[['aiptw']], plug_in_est = aiptw_a_1[['plug_in_est']],
+  return(list(EY_Ad_dZ1 = data.frame(aiptw = aiptw_a_1[['aiptw']], plug_in_est = aiptw_a_1[['plug_in_est']],
                          mean_aug = mean(aiptw_a_1[['augmentation']]), var_aug = aiptw_a_1[['var_aug']]),
-              data.frame(aiptw = aiptw_a_0[['aiptw']], plug_in_est = aiptw_a_0[['plug_in_est']],
+              EY_A0_dZ1 = data.frame(aiptw = aiptw_a_0[['aiptw']], plug_in_est = aiptw_a_0[['plug_in_est']],
                          mean_aug = mean(aiptw_a_0[['augmentation']]), var_aug = aiptw_a_0[['var_aug']]),
-              data.frame(E_dZ1 = mean_dZ, var_E_dZ1 = cov_matrix[3,3]),
-              data.frame(subgroup_effect = subgroup_effect, var_subgroup_effect = var_subgroup_effect),
-              data.frame(treatment_effect = treatment_effect, var_treatment_effect = var_treatment_effect),
-              inf_fn_matrix,
-              df_decisions))
-
+              E_dZ1 = data.frame(E_dZ1 = mean_dZ, var_E_dZ1 = cov_matrix[3,3]),
+              subgroup_effect = data.frame(subgroup_effect = subgroup_effect, var_subgroup_effect = var_subgroup_effect),
+              treatment_effect = data.frame(treatment_effect = treatment_effect, var_treatment_effect = var_treatment_effect),
+              subgroup_effect_dZ0 = data.frame(subgroup_effect_dZ0 = subgroup_effect_dZ0, var_subgroup_effect_dZ0 = var_subgroup_effect_dZ0),
+              inf_fn_matrix = inf_fn_matrix,
+              df_decisions = df_decisions))
 }
 
 #' Function to calculate AIPTW

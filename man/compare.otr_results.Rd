@@ -7,21 +7,18 @@
 compare.otr_results(
   res_rule1,
   res_rule2,
-  threshold1,
-  threshold2,
+  threshold,
   rule1_comp,
   rule2_comp,
   ...
 )
 }
 \arguments{
-\item{res_rule1}{An \code{"otr_results"} object for treatment rule 1}
+\item{res_rule1}{An \code{"otr_results"} object or \code{"full_otr_results"} object for treatment rule 1}
 
-\item{res_rule2}{An \code{"otr_results"} object for treatment rule 2}
+\item{res_rule2}{An \code{"otr_results"} object or \code{"full_otr_results"} object for treatment rule 2}
 
-\item{threshold1}{threshold to use for treatment rule 1}
-
-\item{threshold2}{threshold to use for treatment rule 2}
+\item{threshold}{threshold to use for comparison of both rules (must appear in both otr_results objects)}
 
 \item{rule1_comp}{Effect type for rule 1 to use in comparison ("treatment effect"/"te" or "subgroup effect"/"se")}
 
