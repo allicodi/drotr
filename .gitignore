@@ -4,3 +4,4 @@ test.R
 README.html
 .Rbuildignore
 Makefile
+.Rproj.user

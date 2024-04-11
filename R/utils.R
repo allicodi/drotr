@@ -349,32 +349,6 @@ compare.otr_results <- function(res_rule1, res_rule2, threshold, rule1_comp, rul
 
   # Pull AIPTWs and make gradient for comparing rules
 
-  # ORIGINAL THAT MIGHT HAVE BEEN WRONG
-  # I think it goes "se" then "te"??
-  # this is "te" in slot 4, "se" in slot 5
-
-  # if(rule1_comp == "treatment effect" | rule1_comp == "te"){
-  #   aiptw_1 <- res_rule1$results[[t_name1]]$aggregated_results$treatment_effect
-  #   gradient_1 <- c(0, 0, 0, 1, 0)
-  # } else if(rule1_comp == "subgroup effect" | rule1_comp == "se"){
-  #   aiptw_1 <- res_rule1$results[[t_name1]]$aggregated_results$subgroup_effect
-  #   gradient_1 <- c(0, 0, 0, 0, 1)
-  # } else{
-  #   return(print("Must enter treatment effect, te, subgroup effect, or se"))
-  # }
-  #
-  # if(rule2_comp == "treatment effect" | rule2_comp == "te"){
-  #   aiptw_2 <- res_rule2$results[[t_name2]]$aggregated_results$treatment_effect
-  #   gradient_2 <- c(0, 0, 0, -1, 0)
-  # } else if(rule2_comp == "subgroup effect" | rule2_comp == "se"){
-  #   aiptw_2 <- res_rule2$results[[t_name2]]$aggregated_results$subgroup_effect
-  #   gradient_2 <- c(0, 0, 0, 0, -1)
-  # } else{
-  #   return(print("Must enter treatment effect, te, subgroup effect, or se"))
-  # }
-  #
-  # gradient <- c(gradient_1, gradient_2)
-
   # Updated for subgroup effect in untreated
   if(rule1_comp == "treatment effect" | rule1_comp == "te"){
     aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$treatment_effect
@@ -472,5 +446,160 @@ print.otr_comparison <- function(x, ...){
 
   cat(paste("\n Rule 1: Z = ", x$Z_list_1))
   cat(paste("\n Rule 2: Z = ", x$Z_list_2))
+
+}
+
+#' Helper function to average results across multiple seeds
+#'
+#' @param results_list list of results using same models & Z_list, different seeds
+#' @param threshold threshold of results to use for comparison
+#'
+#' @return summary_df dataframe summarizing results across length(results_list) seeds
+#' @export
+#'
+average_across_seeds <- function(results_list, threshold){
+
+  # get name of threshold to use for comparison
+  t_name <- paste("threshold = ", threshold)
+  n <- length(results_list)
+  combined_res <- data.frame()
+  for(seed in 1:n){
+    if(class(results_list[[seed]]) == "full_otr_results"){
+      seed_res <- results_list[[seed]]$results[[t_name]]$aggregated_results
+      if(is.null(seed_res)) stop(print(paste0("results_list item ", seed, " at threshold ", threshold, "not found")))
+      Z_list <- results_list[[seed]]$results$Z_list
+
+    } else if(class(results_list[[seed]]) == "otr_results"){
+      seed_res <- results_list[[seed]][[t_name]]$aggregated_results
+      if(is.null(seed_res)) stop(print(paste0("results_list item ", seed, " at threshold ", threshold, "not found")))
+      Z_list <- results_list[[seed]]$Z_list
+
+    } else {
+      stop(print(paste0("results_list item ", seed, " not full_otr_results or otr_results object")))
+    }
+
+    # add results for given seed to dataframe
+    combined_res <- rbind(combined_res, seed_res)
+
+  }
+
+  # average results across seeds
+  average_results <- data.frame(
+    EY_Ad_dZ1 = mean(seed_res$aiptw_EY_Ad_dZ1),
+    se_EY_Ad_dZ1 = sqrt(mean((seed_res$se_aiptw_EY_Ad_dZ1^2))),
+    EY_A0_dZ1 = mean(seed_res$aiptw_EY_A0_dZ1),
+    se_EY_A0_dZ1 = sqrt(mean((seed_res$se_aiptw_EY_A0_dZ1^2))),
+    E_dZ1 = mean(seed_res$E_dZ1),
+    se_E_dZ1 = sqrt(mean((seed_res$se_E_dZ1^2))),
+    subgroup_effect = mean(seed_res$subgroup_effect),
+    se_subgroup_effect = sqrt(mean((seed_res$se_subgroup_effect^2))),
+    subgroup_effect_dZ0 = mean(seed_res$subgroup_effect_dZ0),
+    se_subgroup_effect_dZ0 = sqrt(mean((seed_res$se_subgroup_effect_dZ0^2))),
+    treatment_effect = mean(seed_res$treatment_effect),
+    se_treatment_effect = sqrt(mean((seed_res$se_treatment_effect^2)))
+  )
+
+  ci_df <- data.frame(
+    lower_EY_Ad_dZ1 = average_results$EY_Ad_dZ1 - 1.96*average_results$se_EY_Ad_dZ1,
+    upper_EY_Ad_dZ1 = average_results$EY_Ad_dZ1 + 1.96*average_results$se_EY_Ad_dZ1,
+    lower_EY_A0_dZ1 = average_results$EY_A0_dZ1 - 1.96*average_results$se_EY_A0_dZ1,
+    upper_EY_A0_dZ1 = average_results$EY_A0_dZ1 + 1.96*average_results$se_EY_A0_dZ1,
+    lower_EY_E_dZ1 = average_results$E_dZ1 - 1.96*average_results$se_E_dZ1,
+    upper_EY_E_dZ1 = average_results$E_dZ1 + 1.96*average_results$se_E_dZ1,
+    lower_subgroup_effect = average_results$subgroup_effect - 1.96*average_results$se_subgroup_effect,
+    upper_subgroup_effect = average_results$subgroup_effect + 1.96*average_results$se_subgroup_effect,
+    lower_subgroup_effect_dZ0 = average_results$subgroup_effect_dZ0 - 1.96*average_results$se_subgroup_effect_dZ0,
+    upper_subgroup_effect_dZ0 = average_results$subgroup_effect_dZ0 + 1.96*average_results$se_subgroup_effect_dZ0,
+    lower_treatment_effect = average_results$treatment_effect - 1.96*average_results$se_treatment_effect,
+    upper_treatment_effect = average_results$treatment_effect + 1.96*average_results$se_treatment_effect
+  )
+
+  results_table <- data.frame(
+    value = c(average_results$EY_Ad_dZ1,
+              average_results$EY_A0_dZ1,
+              average_results$E_dZ1,
+              average_results$subgroup_effect,
+              average_results$subgroup_effect_dZ0,
+              average_results$treatment_effect),
+    se = c(average_results$se_EY_Ad_dZ1,
+           average_results$se_EY_A0_dZ1,
+           average_results$se_E_dZ1,
+           average_results$se_subgroup_effect,
+           average_results$se_subgroup_effect_dZ0,
+           average_results$se_treatment_effect),
+    lower_ci = c(ci_df$lower_EY_Ad_dZ1,
+                 ci_df$lower_EY_A0_dZ1,
+                 ci_df$lower_EY_E_dZ1,
+                 ci_df$lower_subgroup_effect,
+                 ci_df$lower_subgroup_effect_dZ0,
+                 ci_df$lower_treatment_effect),
+    upper_ci = c(ci_df$upper_EY_Ad_dZ1,
+                 ci_df$upper_EY_A0_dZ1,
+                 ci_df$upper_EY_E_dZ1,
+                 ci_df$upper_subgroup_effect,
+                 ci_df$upper_subgroup_effect_dZ0,
+                 ci_df$upper_treatment_effect)
+  )
+
+  row_names <- c("E[Y(d) | d(Z) = 1]",
+                 "E[Y(0) | d(Z) = 1]",
+                 "E[d(Z) = 1]",
+                 "E[Y(d) - Y(0) | d(Z) = 1]",
+                 "E[Y(1) - Y(d) | d(Z) = 0]",
+                 "E[Y(d) - Y(0)]")
+
+  col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
+
+  rownames(results_table) <- row_names
+  colnames(results_table) <- col_names
+
+  average_results_list <- list(results_table = results_table,
+                               Z_list = Z_list,
+                               n_seeds = n,
+                               threshold = threshold)
+
+  class(average_results_list) <- "average_results"
+
+  return(average_results_list)
+
+}
+
+#' Print the output of a \code{"average_results"} object.
+#'
+#' @param x An \code{"otr_results"} or \code{"full_otr_results"} object.
+#' @param ... Other arguments (not used)
+#'
+#' @method print average_results
+#' @export
+print.average_results <- function(x, ...){
+  Z_list <- x$Z_list
+  n <- x$n_seeds
+  results_table <- x$results_table
+
+  row_names <- rownames(results_table)
+  col_names <- colnames(results_table)
+
+  # Print header with dashed line
+  cat(paste("                                 Average results across n = ", n, " seeds \n"))
+  cat(paste(rep("-", 105), collapse = ""), "\n")
+  cat(sprintf("%-30s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+  cat(paste(rep("-", 105), collapse = ""), "\n")
+
+  for(i in 1:nrow(results_table)){
+    row_to_print <- results_table[i, ]
+
+    # Adjust the widths as needed
+    formatted_row <- sprintf("%-30s%-20s%-20s%-20s%-20s\n",
+                             row.names(row_to_print),
+                             round(row_to_print[1],4),
+                             round(row_to_print[2],4),
+                             round(row_to_print[3],4),
+                             round(row_to_print[4],4))
+
+    # Print the formatted row
+    cat(paste(formatted_row))
+  }
+
+  cat(paste("\nCovariates used in decision rule: ", paste(Z_list, collapse = ", "), "\n\n"))
 
 }
