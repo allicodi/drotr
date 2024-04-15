@@ -485,18 +485,18 @@ average_across_seeds <- function(results_list, threshold){
 
   # average results across seeds
   average_results <- data.frame(
-    EY_Ad_dZ1 = mean(seed_res$aiptw_EY_Ad_dZ1),
-    se_EY_Ad_dZ1 = sqrt(mean((seed_res$se_aiptw_EY_Ad_dZ1^2))),
-    EY_A0_dZ1 = mean(seed_res$aiptw_EY_A0_dZ1),
-    se_EY_A0_dZ1 = sqrt(mean((seed_res$se_aiptw_EY_A0_dZ1^2))),
-    E_dZ1 = mean(seed_res$E_dZ1),
-    se_E_dZ1 = sqrt(mean((seed_res$se_E_dZ1^2))),
-    subgroup_effect = mean(seed_res$subgroup_effect),
-    se_subgroup_effect = sqrt(mean((seed_res$se_subgroup_effect^2))),
-    subgroup_effect_dZ0 = mean(seed_res$subgroup_effect_dZ0),
-    se_subgroup_effect_dZ0 = sqrt(mean((seed_res$se_subgroup_effect_dZ0^2))),
-    treatment_effect = mean(seed_res$treatment_effect),
-    se_treatment_effect = sqrt(mean((seed_res$se_treatment_effect^2)))
+    EY_Ad_dZ1 = mean(combined_res$aiptw_EY_Ad_dZ1),
+    se_EY_Ad_dZ1 = sqrt(mean((combined_res$se_aiptw_EY_Ad_dZ1^2))),
+    EY_A0_dZ1 = mean(combined_res$aiptw_EY_A0_dZ1),
+    se_EY_A0_dZ1 = sqrt(mean((combined_res$se_aiptw_EY_A0_dZ1^2))),
+    E_dZ1 = mean(combined_res$E_dZ1),
+    se_E_dZ1 = sqrt(mean((combined_res$se_E_dZ1^2))),
+    subgroup_effect = mean(combined_res$subgroup_effect),
+    se_subgroup_effect = sqrt(mean((combined_res$se_subgroup_effect^2))),
+    subgroup_effect_dZ0 = mean(combined_res$subgroup_effect_dZ0),
+    se_subgroup_effect_dZ0 = sqrt(mean((combined_res$se_subgroup_effect_dZ0^2))),
+    treatment_effect = mean(combined_res$treatment_effect),
+    se_treatment_effect = sqrt(mean((combined_res$se_treatment_effect^2)))
   )
 
   ci_df <- data.frame(
