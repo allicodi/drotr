@@ -31,7 +31,6 @@ strip_glm <- function(cm, earth = FALSE) {
   cm$residuals = c()
   cm$fitted.values = c()
   cm$effects = c()
-  cm$qr$qr = c()
   cm$linear.predictors = c()
   cm$weights = c()
   cm$prior.weights = c()
