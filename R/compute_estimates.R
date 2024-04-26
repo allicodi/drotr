@@ -201,7 +201,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   ### Step 1: using df_est, get prediction from CATE model and find observations that meet treatment threshold
   CATE_pred <- stats::predict(CATE_model, Z, type = 'response')
 
-  # d_pred <- ifelse(CATE_pred < -abs(threshold), 1, 0)
+  ### NEW TEMP FIX FOR EXTREME CATES: truncate if <-1 or >1
+  CATE_pred <- ifelse(CATE_pred < -1, -1, CATE_pred)
+  CATE_pred <- ifelse(CATE_pred > 1, 1, CATE_pred)
 
   if(sign == "-"){
     d_pred <- ifelse(CATE_pred < threshold, 1, 0)
