@@ -20,6 +20,7 @@
 #' @param k_folds integer number of folds to use for cross-validation (must specify if fitting outcome, treatment, and missingness models. Otherwise uses k from `k_fold_assign_and_CATE`)
 #' @param ps_trunc_level numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)
 #' @param outcome_type outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)
+#' @param truncate_CATE logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)
 #'
 #' @export
 #'
@@ -46,7 +47,8 @@ estimate_OTR <- function(df,
                          threshold = c("0.05"),
                          k_folds = 2,
                          ps_trunc_level = 0.01,
-                         outcome_type = "gaussian"){
+                         outcome_type = "gaussian",
+                         truncate_CATE = "TRUE"){
 
   # --------------------------------------------------------------------------
   # 0 - Prep dataset
@@ -94,7 +96,7 @@ estimate_OTR <- function(df,
   results <- drotr::compute_estimates(df, Y_name, A_name, W_list, Z_list,
                                       k_fold_assign_and_CATE,
                                       nuisance_models, CATE_models,
-                                      threshold, ps_trunc_level)
+                                      threshold, ps_trunc_level, truncate_CATE)
 
   results <- list(results)
   names(results) <- "results"

@@ -14,7 +14,8 @@ compute_estimates(
   nuisance_models,
   CATE_models,
   threshold,
-  ps_trunc_level = 0.01
+  ps_trunc_level = 0.01,
+  truncate_CATE
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ compute_estimates(
 \item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
 \item{ps_trunc_level}{numeric level to use for truncation of any predicted values that fall below it}
+
+\item{truncate_CATE}{logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)}
 }
 \value{
 \describe{

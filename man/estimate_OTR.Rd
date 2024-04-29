@@ -21,7 +21,8 @@ estimate_OTR(
   threshold = c("0.05"),
   k_folds = 2,
   ps_trunc_level = 0.01,
-  outcome_type = "gaussian"
+  outcome_type = "gaussian",
+  truncate_CATE = "TRUE"
 )
 }
 \arguments{
@@ -58,6 +59,8 @@ estimate_OTR(
 \item{ps_trunc_level}{numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)}
 
 \item{outcome_type}{outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)}
+
+\item{truncate_CATE}{logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)}
 }
 \value{
 \describe{

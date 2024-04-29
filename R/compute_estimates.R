@@ -10,6 +10,7 @@
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models
 #' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
 #' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
+#' @param truncate_CATE logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)
 #'
 #' @import stats
 #' @export
@@ -24,7 +25,7 @@
 compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                               k_fold_assign_and_CATE,
                               nuisance_models, CATE_models,
-                              threshold, ps_trunc_level = 0.01){
+                              threshold, ps_trunc_level = 0.01, truncate_CATE){
 
   k_folds <- max(k_fold_assign_and_CATE$k)
 
@@ -71,7 +72,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       # (5) original kth fold data with corresponding treatment decisions
       compute_est_output <- compute_estimate_k(df_est, Y_name, A_name, W_list, Z_list,
                                                CATE_model, nuisance_model,
-                                               sign, t, ps_trunc_level)
+                                               sign, t, ps_trunc_level, truncate_CATE)
 
       k_fold_EY_Ad_dZ1[[k]] <- compute_est_output$EY_Ad_dZ1
       k_fold_EY_A0_dZ1[[k]] <- compute_est_output$EY_A0_dZ1
@@ -87,7 +88,8 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                                                              k = k,
                                                              threshold = t,
                                                              CATE_pred = kth_decision_df$CATE_pred,
-                                                             decision = kth_decision_df$d_pred))
+                                                             decision = kth_decision_df$d_pred,
+                                                             truncated_CATE = kth_decision_df$trunc_flag))
     }
 
     # Aggregate list of results across folds into dataframe
@@ -169,6 +171,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 #' @param sign sign of threshold, + indicates `Y` is a desirable outcome, - indicates `Y` is an undesirable outcome
 #' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
 #' @param ps_trunc_level numeric level to use for truncation of any predicted values that fall below it
+#' @param truncate_CATE logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)
 #'
 #' @returns
 #' \describe{
@@ -184,7 +187,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 #' @keywords internal
 compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
                              CATE_model, nuisance,
-                             sign, threshold, ps_trunc_level = 0.01){
+                             sign, threshold, ps_trunc_level = 0.01, truncate_CATE){
 
   # extract models from nuisance
   outcome_model <- nuisance$outcome_model
@@ -201,9 +204,16 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   ### Step 1: using df_est, get prediction from CATE model and find observations that meet treatment threshold
   CATE_pred <- stats::predict(CATE_model, Z, type = 'response')
 
-  ### NEW TEMP FIX FOR EXTREME CATES: truncate if <-1 or >1
-  CATE_pred <- ifelse(CATE_pred < -1, -1, CATE_pred)
-  CATE_pred <- ifelse(CATE_pred > 1, 1, CATE_pred)
+  # if truncate CATE is true, truncate at -1 and 1
+  if(truncate_CATE == TRUE){
+    trunc_flag <- ifelse(CATE_pred < -1, 1, 0)
+    CATE_pred <- ifelse(CATE_pred < -1, -1, CATE_pred)
+
+    trunc_flag <- ifelse(CATE_pred > 1, 1, trunc_flag)
+    CATE_pred <- ifelse(CATE_pred > 1, 1, CATE_pred)
+  } else {
+    trunc_flag <- rep(0, length(CATE_pred))
+  }
 
   if(sign == "-"){
     d_pred <- ifelse(CATE_pred < threshold, 1, 0)
@@ -216,7 +226,8 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   idx_sub0 <- which(d_pred == 0) # for effect in d(Z) = 0 subgroup
 
   # add decisions to kth fold dataframe to return later on
-  df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred))
+  df_decisions <- cbind(df, d_pred, data.frame(CATE_pred = CATE_pred,
+                                               trunc_flag = trunc_flag))
 
   ### Step 2: Find P(d(Z) = 1) by taking mean(d(Z)) created in step 1
   mean_dZ <- mean(d_pred)
