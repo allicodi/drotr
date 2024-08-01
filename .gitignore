@@ -5,3 +5,7 @@ README.html
 .Rbuildignore
 Makefile
 .Rproj.user
+.DS_Store
+.Rhistory
+drotr.Rproj
+wrappers.R

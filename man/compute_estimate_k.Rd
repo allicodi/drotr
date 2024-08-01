@@ -44,6 +44,14 @@ compute_estimate_k(
 \value{
 \describe{
        (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
+       (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
+       (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
+       (4) dataframe with E[Y(1) - Y(0) | d(Z) = 1] -- estimated subgroup effect
+       (5) dataframe with E[Y(1) - Y(0) ] -- overall treatment effect among optimally treated
+       (6) dataframe with E[Y(1) - Y(0) | d(Z) = 0] -- estimated subgroup effect in the untreated
+       (7) dataframe with E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
+       (8) influence function matrix
+       (9) original kth fold data with corresponding treatment decisions
  }
 }
 \description{

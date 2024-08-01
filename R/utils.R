@@ -131,25 +131,29 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$E_dZ1,
         sub$aggregated_results$subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect),
+        sub$aggregated_results$treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect),
       c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$se_treatment_effect),
+        sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$se_compare_subgroup_effect),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect),
+        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect)
+        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect)
     )
 
     row_names <- c("E[Y(d) | d(Z) = 1]",
@@ -157,7 +161,8 @@ print.full_otr_results <- function(x, ...){
                    "E[d(Z) = 1]",
                    "E[Y(d) - Y(0) | d(Z) = 1]",
                    "E[Y(1) - Y(d) | d(Z) = 0]",
-                   "E[Y(d) - Y(0)]")
+                   "E[Y(d) - Y(0)]",
+                   "E[Y(d) - Y(0) | d(Z) = 1] - E[Y(1) - Y(d) | d(Z) = 0]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -165,16 +170,16 @@ print.full_otr_results <- function(x, ...){
     colnames(tmp) <- col_names
 
     # Print header with dashed line
-    cat(paste("                      Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
-    cat(paste(rep("-", 105), collapse = ""), "\n")
-    cat(sprintf("%-30s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
-    cat(paste(rep("-", 105), collapse = ""), "\n")
+    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
+    cat(paste(rep("-", 135), collapse = ""), "\n")
+    cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+    cat(paste(rep("-", 135), collapse = ""), "\n")
 
     for(i in 1:nrow(tmp)){
       row_to_print <- tmp[i, ]
 
       # Adjust the widths as needed
-      formatted_row <- sprintf("%-30s%-20s%-20s%-20s%-20s\n",
+      formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
                                row.names(row_to_print),
                                round(row_to_print[1],4),
                                round(row_to_print[2],4),
@@ -217,25 +222,29 @@ print.otr_results <- function(x, ...){
         sub$aggregated_results$E_dZ1,
         sub$aggregated_results$subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect),
+        sub$aggregated_results$treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect),
       c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$se_treatment_effect),
+        sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$se_compare_subgroup_effect),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect),
+        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect)
+        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect)
     )
 
     row_names <- c("E[Y(d) | d(Z) = 1]",
@@ -243,7 +252,8 @@ print.otr_results <- function(x, ...){
                    "E[d(Z) = 1]",
                    "E[Y(d) - Y(0) | d(Z) = 1]",
                    "E[Y(1) - Y(d) | d(Z) = 0]",
-                   "E[Y(d) - Y(0)]")
+                   "E[Y(d) - Y(0)]",
+                   "E[Y(d) - Y(0) | d(Z) = 1] - E[Y(1) - Y(d) | d(Z) = 0]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -251,16 +261,16 @@ print.otr_results <- function(x, ...){
     colnames(tmp) <- col_names
 
     # Print header with dashed line
-    cat(paste("                      Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
-    cat(paste(rep("-", 105), collapse = ""), "\n")
-    cat(sprintf("%-30s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
-    cat(paste(rep("-", 105), collapse = ""), "\n")
+    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
+    cat(paste(rep("-", 135), collapse = ""), "\n")
+    cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+    cat(paste(rep("-", 135), collapse = ""), "\n")
 
     for(i in 1:nrow(tmp)){
       row_to_print <- tmp[i, ]
 
       # Adjust the widths as needed
-      formatted_row <- sprintf("%-30s%-20s%-20s%-20s%-20s\n",
+      formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
                                row.names(row_to_print),
                                round(row_to_print[1],4),
                                round(row_to_print[2],4),
@@ -368,7 +378,7 @@ compare.otr_results <- function(res_rule1, res_rule2, threshold, rule1_comp, rul
   } else if(rule2_comp == "subgroup effect" | rule2_comp == "se"){
     aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$subgroup_effect
     gradient_2 <- c(0, 0, 0, 0, 0, 0, -1, 0, 0)
-  } else if(rule1_comp == "subgroup effect untreated" | rule1_comp == "se_dZ0"){
+  } else if(rule2_comp == "subgroup effect untreated" | rule2_comp == "se_dZ0"){
     aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$subgroup_effect_dZ0
     gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, -1, 0)
   } else {

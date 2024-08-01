@@ -51,6 +51,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_treatment_effect <- vector("list", length = k_folds)
     k_fold_inf_fn_matrix <- vector("list", length = k_folds)
     k_fold_subgroup_effect_dZ0 <- vector("list", length = k_folds)
+    k_fold_compare_subgroup_effect <- vector("list", length = k_folds)
     k_fold_decisions <- data.frame()
 
     for(k in 1:k_folds){
@@ -80,6 +81,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_subgroup_effect[[k]] <- compute_est_output$subgroup_effect
       k_fold_treatment_effect[[k]] <- compute_est_output$treatment_effect
       k_fold_subgroup_effect_dZ0[[k]] <- compute_est_output$subgroup_effect_dZ0
+      k_fold_compare_subgroup_effect[[k]] <- compute_est_output$compare_subgroup_effect
       k_fold_inf_fn_matrix[[k]] <- compute_est_output$inf_fn_matrix
 
       kth_decision_df <- compute_est_output$df_decisions
@@ -99,6 +101,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_subgroup_effect <- do.call(rbind, k_fold_subgroup_effect)
     k_fold_subgroup_effect_dZ0 <- do.call(rbind, k_fold_subgroup_effect_dZ0)
     k_fold_treatment_effect <- do.call(rbind, k_fold_treatment_effect)
+    k_fold_compare_subgroup_effect <- do.call(rbind, k_fold_compare_subgroup_effect)
 
     # If any folds were NA, do not count in computing overall results
     # k_non_na will be the same for k_fold_EYd_dZ1 and k_fold_EY0_dZ1, find once
@@ -125,7 +128,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       subgroup_effect_dZ0 = mean(k_fold_subgroup_effect_dZ0$subgroup_effect_dZ0, na.rm=TRUE),
       se_subgroup_effect_dZ0 = sqrt((sum(k_fold_subgroup_effect_dZ0$var_subgroup_effect_dZ0, na.rm = TRUE) / k_folds_non_na) / num_obs),
       treatment_effect = mean(k_fold_treatment_effect$treatment_effect, na.rm=TRUE),
-      se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect, na.rm = TRUE) / k_folds_non_na) / num_obs)
+      se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect, na.rm = TRUE) / k_folds_non_na) / num_obs),
+      compare_subgroup_effect = mean(k_fold_compare_subgroup_effect$compare_subgroup_effect, na.rm = TRUE),
+      se_compare_subgroup_effect = sqrt((sum(k_fold_compare_subgroup_effect$var_compare_subgroup_effect, na.rm = TRUE) / k_folds_non_na) / num_obs)
     )
 
     k_fold_results <- list(
@@ -135,6 +140,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_subgroup_effect = k_fold_subgroup_effect,
       k_fold_subgroup_effect_dZ0 = k_fold_subgroup_effect_dZ0,
       k_fold_treatment_effect = k_fold_treatment_effect,
+      k_fold_compare_subgroup_effect = k_fold_compare_subgroup_effect,
       influence_fns = k_fold_inf_fn_matrix
     )
 
@@ -176,12 +182,14 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 #' @returns
 #' \describe{
 #'        (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
-#         (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
-#         (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
-#         (4) dataframe with E[Y(0) - Y(1) | d(Z) = 1] -- estimated subgroup effect
-#         (5) dataframe with E[Y(0) - Y(1) ] -- overall treatment effect among optimally treated
-#         (6) influence function matrix
-#         (7) original kth fold data with corresponding treatment decisions
+#'        (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
+#'        (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
+#'        (4) dataframe with E[Y(1) - Y(0) | d(Z) = 1] -- estimated subgroup effect
+#'        (5) dataframe with E[Y(1) - Y(0) ] -- overall treatment effect among optimally treated
+#'        (6) dataframe with E[Y(1) - Y(0) | d(Z) = 0] -- estimated subgroup effect in the untreated
+#'        (7) dataframe with E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
+#'        (8) influence function matrix
+#'        (9) original kth fold data with corresponding treatment decisions
 #'  }
 #'
 #' @keywords internal
@@ -301,6 +309,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   # E[Y(d) - Y(0) | d(Z) = 0] = E[Y(d) | d(Z) = 0] - E[Y(0) | d(Z) = 0 ]
   subgroup_effect_dZ0 <- (aiptw_a_1_dZ0[['aiptw']] - aiptw_a_0_dZ0[['aiptw']])
 
+  # E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] **** <- isn't this going to be zero??
+  compare_subgroup_effect <- subgroup_effect - subgroup_effect_dZ0
+
   ### Step 10: estimate of influence function & its variance
   mean_dZ <- mean(d_pred)
   augmentation_mean_dZ <- d_pred - mean_dZ
@@ -336,6 +347,13 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 
   var_subgroup_effect_dZ0 <- t(gradient_g_subgroup_dZ0) %*% cov_matrix %*% gradient_g_subgroup_dZ0
 
+  # Comparison of optimally and NOT optimally treated subgroups
+  gradient_compare_subgroup <- matrix(c(
+    1, -1, 0, -1, 1, 0
+  ), ncol = 1)
+
+  var_compare_subgroup <- t(gradient_compare_subgroup) %*% cov_matrix %*% gradient_compare_subgroup
+
   # Effect overall
   gradient_g <- matrix(c(
     mean_dZ, -mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']], 0, 0, 0
@@ -346,17 +364,19 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   # add columns for the influence functions of subgroup_effect and treatment_effect
   inf_fn_subgroup_effect <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup)
   inf_fn_subgroup_effect_dZ0 <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup_dZ0)
+  inf_fn_compare_subgroup <- as.numeric(inf_fn_matrix %*% gradient_compare_subgroup)
   inf_fn_treatment_effect <- as.numeric(inf_fn_matrix %*% gradient_g)
   inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect)
 
   # return  (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
   #         (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
   #         (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
-  #         (4) dataframe with E[Y(0) - Y(1) | d(Z) = 1] -- estimated subgroup effect
-  #         (5) dataframe with E[Y(0) - Y(1) ] -- overall treatment effect among optimally treated
-  #         (6) dataframe with E[Y(0) - Y(1) | d(Z) = 0] -- estimated subgroup effect in the untreated
-  #         (6) influence function matrix
-  #         (7) original kth fold data with corresponding treatment decisions
+  #         (4) dataframe with E[Y(1) - Y(0) | d(Z) = 1] -- estimated subgroup effect
+  #         (5) dataframe with E[Y(1) - Y(0) ] -- overall treatment effect among optimally treated
+  #         (6) dataframe with E[Y(1) - Y(0) | d(Z) = 0] -- estimated subgroup effect in the untreated
+  #         (7) dataframe with E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
+  #         (8) influence function matrix
+  #         (9) original kth fold data with corresponding treatment decisions
   return(list(EY_Ad_dZ1 = data.frame(aiptw = aiptw_a_1[['aiptw']], plug_in_est = aiptw_a_1[['plug_in_est']],
                          mean_aug = mean(aiptw_a_1[['augmentation']]), var_aug = aiptw_a_1[['var_aug']]),
               EY_A0_dZ1 = data.frame(aiptw = aiptw_a_0[['aiptw']], plug_in_est = aiptw_a_0[['plug_in_est']],
@@ -365,6 +385,7 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
               subgroup_effect = data.frame(subgroup_effect = subgroup_effect, var_subgroup_effect = var_subgroup_effect),
               treatment_effect = data.frame(treatment_effect = treatment_effect, var_treatment_effect = var_treatment_effect),
               subgroup_effect_dZ0 = data.frame(subgroup_effect_dZ0 = subgroup_effect_dZ0, var_subgroup_effect_dZ0 = var_subgroup_effect_dZ0),
+              compare_subgroup_effect = data.frame(compare_subgroup_effect = compare_subgroup_effect, var_compare_subgroup_effect = var_compare_subgroup),
               inf_fn_matrix = inf_fn_matrix,
               df_decisions = df_decisions))
 }
