@@ -103,34 +103,41 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_treatment_effect <- do.call(rbind, k_fold_treatment_effect)
     k_fold_compare_subgroup_effect <- do.call(rbind, k_fold_compare_subgroup_effect)
 
-    # If any folds were NA, do not count in computing overall results
-    # k_non_na will be the same for k_fold_EYd_dZ1 and k_fold_EY0_dZ1, find once
-    k_non_na <- which(!is.na(k_fold_EY_Ad_dZ1$var_aug))
-    k_folds_non_na <- length(k_non_na)
+    # If any folds contained NA, do not count in computing overall results (cases when a fold recommends treatment to everybody or nobody)
+    k_non_na <- which(!(is.na(k_fold_subgroup_effect$var_subgroup_effect) | is.na(k_fold_EY_Ad_dZ1$var_aug)))
 
-    # get number of observations in the non-NA folds
-    num_obs <- nrow(df) * (k_folds_non_na / k_folds)
+    non_na_k_fold_EY_Ad_dZ1 <- k_fold_EY_Ad_dZ1[k_non_na,]
+    non_na_k_fold_EY_A0_dZ1 <- k_fold_EY_A0_dZ1[k_non_na,]
+    non_na_k_fold_E_dZ1 <- k_fold_E_dZ1[k_non_na,]
+    non_na_k_fold_subgroup_effect <- k_fold_subgroup_effect[k_non_na,]
+    non_na_k_fold_subgroup_effect_dZ0 <- k_fold_subgroup_effect_dZ0[k_non_na,]
+    non_na_k_fold_treatment_effect <- k_fold_treatment_effect[k_non_na,]
+    non_na_k_fold_compare_subgroup_effect <- k_fold_compare_subgroup_effect[k_non_na,]
+
+    # get number of non-NA folds + observations in them
+    k_folds_non_na <- length(k_non_na)
+    num_obs <- nrow(k_fold_decisions[k_fold_decisions$k %in% k_non_na,])
 
     aggregated_results <- data.frame(
       threshold = t,
-      aiptw_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$aiptw, na.rm=TRUE),
-      se_aiptw_EY_Ad_dZ1 = sqrt((sum(k_fold_EY_Ad_dZ1$var_aug, na.rm=TRUE) / k_folds_non_na) / num_obs),
-      plug_in_est_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$plug_in_est, na.rm=TRUE),
-      mean_aug_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$mean_aug, na.rm=TRUE),
-      aiptw_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$aiptw, na.rm=TRUE),
-      se_aiptw_EY_A0_dZ1 = sqrt((sum(k_fold_EY_A0_dZ1$var_aug, na.rm=TRUE) / k_folds_non_na) / num_obs),
-      plug_in_est_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$plug_in_est, na.rm=TRUE),
-      mean_aug_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$mean_aug, na.rm=TRUE),
-      E_dZ1 = mean(k_fold_E_dZ1$E_dZ1, na.rm=TRUE),
-      se_E_dZ1 = sqrt((sum(k_fold_E_dZ1$var_E_dZ1, na.rm=TRUE) / k_folds_non_na) / num_obs),
-      subgroup_effect = mean(k_fold_subgroup_effect$subgroup_effect, na.rm=TRUE),
-      se_subgroup_effect = sqrt((sum(k_fold_subgroup_effect$var_subgroup_effect, na.rm = TRUE) / k_folds_non_na) / num_obs),
-      subgroup_effect_dZ0 = mean(k_fold_subgroup_effect_dZ0$subgroup_effect_dZ0, na.rm=TRUE),
-      se_subgroup_effect_dZ0 = sqrt((sum(k_fold_subgroup_effect_dZ0$var_subgroup_effect_dZ0, na.rm = TRUE) / k_folds_non_na) / num_obs),
-      treatment_effect = mean(k_fold_treatment_effect$treatment_effect, na.rm=TRUE),
-      se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect, na.rm = TRUE) / k_folds_non_na) / num_obs),
-      compare_subgroup_effect = mean(k_fold_compare_subgroup_effect$compare_subgroup_effect, na.rm = TRUE),
-      se_compare_subgroup_effect = sqrt((sum(k_fold_compare_subgroup_effect$var_compare_subgroup_effect, na.rm = TRUE) / k_folds_non_na) / num_obs)
+      aiptw_EY_Ad_dZ1 = mean(non_na_k_fold_EY_Ad_dZ1$aiptw),
+      se_aiptw_EY_Ad_dZ1 = sqrt((sum(non_na_k_fold_EY_Ad_dZ1$var_aug) / k_folds_non_na) / num_obs),
+      plug_in_est_EY_Ad_dZ1 = mean(non_na_k_fold_EY_Ad_dZ1$plug_in_est),
+      mean_aug_EY_Ad_dZ1 = mean(non_na_k_fold_EY_Ad_dZ1$mean_aug),
+      aiptw_EY_A0_dZ1 = mean(non_na_k_fold_EY_A0_dZ1$aiptw),
+      se_aiptw_EY_A0_dZ1 = sqrt((sum(non_na_k_fold_EY_A0_dZ1$var_aug) / k_folds_non_na) / num_obs),
+      plug_in_est_EY_A0_dZ1 = mean(non_na_k_fold_EY_A0_dZ1$plug_in_est),
+      mean_aug_EY_A0_dZ1 = mean(non_na_k_fold_EY_A0_dZ1$mean_aug),
+      E_dZ1 = mean(non_na_k_fold_E_dZ1$E_dZ1),
+      se_E_dZ1 = sqrt((sum(non_na_k_fold_E_dZ1$var_E_dZ1) / k_folds_non_na) / num_obs),
+      subgroup_effect = mean(non_na_k_fold_subgroup_effect$subgroup_effect),
+      se_subgroup_effect = sqrt((sum(non_na_k_fold_subgroup_effect$var_subgroup_effect) / k_folds_non_na) / num_obs),
+      subgroup_effect_dZ0 = mean(non_na_k_fold_subgroup_effect_dZ0$subgroup_effect_dZ0),
+      se_subgroup_effect_dZ0 = sqrt((sum(non_na_k_fold_subgroup_effect_dZ0$var_subgroup_effect_dZ0) / k_folds_non_na) / num_obs),
+      treatment_effect = mean(non_na_k_fold_treatment_effect$treatment_effect),
+      se_treatment_effect = sqrt((sum(non_na_k_fold_treatment_effect$var_treatment_effect) / k_folds_non_na) / num_obs),
+      compare_subgroup_effect = mean(non_na_k_fold_compare_subgroup_effect$compare_subgroup_effect),
+      se_compare_subgroup_effect = sqrt((sum(non_na_k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds_non_na) / num_obs)
     )
 
     k_fold_results <- list(
@@ -158,7 +165,6 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 
   }
 
-
   threshold_names <- paste("threshold = ", threshold)
   names(results_list_threshold) <- threshold_names
   return(results_list_threshold)
@@ -181,13 +187,13 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 #'
 #' @returns
 #' \describe{
-#'        (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
+#'        (1) dataframe with E[Y(1) | d(Z) = 1] -- estimated treatment effect among optimally treated
 #'        (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
 #'        (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
 #'        (4) dataframe with E[Y(1) - Y(0) | d(Z) = 1] -- estimated subgroup effect
-#'        (5) dataframe with E[Y(1) - Y(0) ] -- overall treatment effect among optimally treated
+#'        (5) dataframe with E[Y(d) - Y(0) ] -- overall treatment effect among optimally treated
 #'        (6) dataframe with E[Y(1) - Y(0) | d(Z) = 0] -- estimated subgroup effect in the untreated
-#'        (7) dataframe with E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
+#'        (7) dataframe with E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
 #'        (8) influence function matrix
 #'        (9) original kth fold data with corresponding treatment decisions
 #'  }
@@ -285,7 +291,7 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
                           ps_trunc_level = ps_trunc_level,
                           idx_sub = idx_sub0)
 
-  # E[Y(0) | d(Z) = 0 ]
+  # E[Y(0) | d(Z) = 0]
   aiptw_a_0_dZ0 <- calc_aiptw(a = 0,
                           A = A,
                           A_name = A_name,
@@ -303,13 +309,13 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   # E[Y(d) - Y(0)] = E[Y(d) | d(Z) = 1]*P(d(Z) = 1) - E[Y(0) | d(Z) = 1 ]*P(d(Z) = 1)
   treatment_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]) * mean_dZ
 
-  # E[Y(d) - Y(0) | d(Z) = 1] = E[Y(d) | d(Z) = 1] - E[Y(0) | d(Z) = 1 ]
+  # E[Y(1) - Y(0) | d(Z) = 1] = E[Y(1) | d(Z) = 1] - E[Y(0) | d(Z) = 1 ]
   subgroup_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']])
 
-  # E[Y(d) - Y(0) | d(Z) = 0] = E[Y(d) | d(Z) = 0] - E[Y(0) | d(Z) = 0 ]
+  # E[Y(1) - Y(0) | d(Z) = 0] = E[Y(1) | d(Z) = 0] - E[Y(0) | d(Z) = 0 ]
   subgroup_effect_dZ0 <- (aiptw_a_1_dZ0[['aiptw']] - aiptw_a_0_dZ0[['aiptw']])
 
-  # E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] **** <- isn't this going to be zero??
+  # E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]
   compare_subgroup_effect <- subgroup_effect - subgroup_effect_dZ0
 
   ### Step 10: estimate of influence function & its variance
@@ -368,13 +374,13 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   inf_fn_treatment_effect <- as.numeric(inf_fn_matrix %*% gradient_g)
   inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect)
 
-  # return  (1) dataframe with E[Y(d) | d(Z) = 1] -- estimated treatment effect among optimally treated
+  # return  (1) dataframe with E[Y(1) | d(Z) = 1] -- estimated treatment effect among optimally treated
   #         (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
   #         (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
   #         (4) dataframe with E[Y(1) - Y(0) | d(Z) = 1] -- estimated subgroup effect
-  #         (5) dataframe with E[Y(1) - Y(0) ] -- overall treatment effect among optimally treated
+  #         (5) dataframe with E[Y(d) - Y(0) ] -- overall treatment effect among optimally treated
   #         (6) dataframe with E[Y(1) - Y(0) | d(Z) = 0] -- estimated subgroup effect in the untreated
-  #         (7) dataframe with E[Y(d) - Y(0) | d(Z) = 1] - E[Y(d) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
+  #         (7) dataframe with E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0] -- comparison of subgroup effects between those recommended and not recommended treatment
   #         (8) influence function matrix
   #         (9) original kth fold data with corresponding treatment decisions
   return(list(EY_Ad_dZ1 = data.frame(aiptw = aiptw_a_1[['aiptw']], plug_in_est = aiptw_a_1[['plug_in_est']],

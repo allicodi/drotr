@@ -156,13 +156,13 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect)
     )
 
-    row_names <- c("E[Y(d) | d(Z) = 1]",
+    row_names <- c("E[Y(1) | d(Z) = 1]",
                    "E[Y(0) | d(Z) = 1]",
                    "E[d(Z) = 1]",
-                   "E[Y(d) - Y(0) | d(Z) = 1]",
-                   "E[Y(1) - Y(d) | d(Z) = 0]",
+                   "E[Y(1) - Y(0) | d(Z) = 1]",
+                   "E[Y(1) - Y(0) | d(Z) = 0]",
                    "E[Y(d) - Y(0)]",
-                   "E[Y(d) - Y(0) | d(Z) = 1] - E[Y(1) - Y(d) | d(Z) = 0]")
+                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -247,13 +247,13 @@ print.otr_results <- function(x, ...){
         sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect)
     )
 
-    row_names <- c("E[Y(d) | d(Z) = 1]",
+    row_names <- c("E[Y(1) | d(Z) = 1]",
                    "E[Y(0) | d(Z) = 1]",
                    "E[d(Z) = 1]",
-                   "E[Y(d) - Y(0) | d(Z) = 1]",
-                   "E[Y(1) - Y(d) | d(Z) = 0]",
+                   "E[Y(1) - Y(0) | d(Z) = 1]",
+                   "E[Y(1) - Y(0) | d(Z) = 0]",
                    "E[Y(d) - Y(0)]",
-                   "E[Y(d) - Y(0) | d(Z) = 1] - E[Y(1) - Y(d) | d(Z) = 0]")
+                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -505,7 +505,9 @@ average_across_seeds <- function(results_list, threshold){
     subgroup_effect_dZ0 = mean(combined_res$subgroup_effect_dZ0),
     se_subgroup_effect_dZ0 = sqrt(mean((combined_res$se_subgroup_effect_dZ0^2))),
     treatment_effect = mean(combined_res$treatment_effect),
-    se_treatment_effect = sqrt(mean((combined_res$se_treatment_effect^2)))
+    se_treatment_effect = sqrt(mean((combined_res$se_treatment_effect^2))),
+    compare_subgroup_effect = mean(combined_res$compare_subgroup_effect),
+    se_compare_subgroup_effect = sqrt(mean((combined_res$se_compare_subgroup_effect^2)))
   )
 
   ci_df <- data.frame(
@@ -520,7 +522,9 @@ average_across_seeds <- function(results_list, threshold){
     lower_subgroup_effect_dZ0 = average_results$subgroup_effect_dZ0 - 1.96*average_results$se_subgroup_effect_dZ0,
     upper_subgroup_effect_dZ0 = average_results$subgroup_effect_dZ0 + 1.96*average_results$se_subgroup_effect_dZ0,
     lower_treatment_effect = average_results$treatment_effect - 1.96*average_results$se_treatment_effect,
-    upper_treatment_effect = average_results$treatment_effect + 1.96*average_results$se_treatment_effect
+    upper_treatment_effect = average_results$treatment_effect + 1.96*average_results$se_treatment_effect,
+    lower_compare_subgroup_effect = average_results$compare_subgroup_effect - 1.96*average_results$se_compare_subgroup_effect,
+    upper_compare_subgroup_effect = average_results$compare_subgroup_effect + 1.96*average_results$se_compare_subgroup_effect
   )
 
   results_table <- data.frame(
@@ -529,33 +533,38 @@ average_across_seeds <- function(results_list, threshold){
               average_results$E_dZ1,
               average_results$subgroup_effect,
               average_results$subgroup_effect_dZ0,
-              average_results$treatment_effect),
+              average_results$treatment_effect,
+              average_results$compare_subgroup_effect),
     se = c(average_results$se_EY_Ad_dZ1,
            average_results$se_EY_A0_dZ1,
            average_results$se_E_dZ1,
            average_results$se_subgroup_effect,
            average_results$se_subgroup_effect_dZ0,
-           average_results$se_treatment_effect),
+           average_results$se_treatment_effect,
+           average_results$se_compare_subgroup_effect),
     lower_ci = c(ci_df$lower_EY_Ad_dZ1,
                  ci_df$lower_EY_A0_dZ1,
                  ci_df$lower_EY_E_dZ1,
                  ci_df$lower_subgroup_effect,
                  ci_df$lower_subgroup_effect_dZ0,
-                 ci_df$lower_treatment_effect),
+                 ci_df$lower_treatment_effect,
+                 ci_df$lower_compare_subgroup_effect),
     upper_ci = c(ci_df$upper_EY_Ad_dZ1,
                  ci_df$upper_EY_A0_dZ1,
                  ci_df$upper_EY_E_dZ1,
                  ci_df$upper_subgroup_effect,
                  ci_df$upper_subgroup_effect_dZ0,
-                 ci_df$upper_treatment_effect)
+                 ci_df$upper_treatment_effect,
+                 ci_df$upper_compare_subgroup_effect)
   )
 
-  row_names <- c("E[Y(d) | d(Z) = 1]",
+  row_names <- c("E[Y(1) | d(Z) = 1]",
                  "E[Y(0) | d(Z) = 1]",
                  "E[d(Z) = 1]",
-                 "E[Y(d) - Y(0) | d(Z) = 1]",
-                 "E[Y(1) - Y(d) | d(Z) = 0]",
-                 "E[Y(d) - Y(0)]")
+                 "E[Y(1) - Y(0) | d(Z) = 1]",
+                 "E[Y(1) - Y(0) | d(Z) = 0]",
+                 "E[Y(d) - Y(0)]",
+                 "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]")
 
   col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -590,15 +599,15 @@ print.average_results <- function(x, ...){
 
   # Print header with dashed line
   cat(paste("                                 Average results across n = ", n, " seeds \n"))
-  cat(paste(rep("-", 105), collapse = ""), "\n")
-  cat(sprintf("%-30s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
-  cat(paste(rep("-", 105), collapse = ""), "\n")
+  cat(paste(rep("-", 135), collapse = ""), "\n")
+  cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+  cat(paste(rep("-", 135), collapse = ""), "\n")
 
   for(i in 1:nrow(results_table)){
     row_to_print <- results_table[i, ]
 
     # Adjust the widths as needed
-    formatted_row <- sprintf("%-30s%-20s%-20s%-20s%-20s\n",
+    formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
                              row.names(row_to_print),
                              round(row_to_print[1],4),
                              round(row_to_print[2],4),
