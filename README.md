@@ -77,7 +77,7 @@ The function `estimate_OTR` will assign treatment to all observations in `df` wi
                                 sl.library.treatment = sl.library.treatment,
                                 sl.library.missingness = sl.library.missingness,
                                 threshold = decision_threshold,
-                                k_folds = 2,
+                                k_folds = 5,
                                 ps_trunc_level = 0.01,
                                 outcome_type = "gaussian")
     
@@ -85,20 +85,30 @@ The function `estimate_OTR` will assign treatment to all observations in `df` wi
 
 ```
 
-Printing the `otr_estimate` results will display estimates and 95% confidence intervals for each AIPTW estimate, the proportion of patients treated under the decision rule, the subgroup treatment effect, and the overall treatment effect:
+Printing the `otr_estimate` results will display estimates and 95% confidence intervals for the following estimands:
+
+1. E[Y(1) | d(Z) = 1] - estimated outcome if treated among those recommended treatment under optimal treatment rule
+2. E[Y(0) | d(Z) = 1] - estimated outcome if NOT treated among those recommended treatment under optimal treatment rule
+3. E[d(Z) = 1] - estimated proportion of patients treated under optimal treatment rule
+4. E[Y(1) - Y(0) | d(Z) = 1] - estimated treatment effect in subgroup of patients recommended treatment under optimal treatment rule
+5. E[Y(1) - Y(0) | d(Z) = 0] - estimated treatment effect in subgroup of patients NOT recommended treatment under optimal treatment rule
+6. E[Y(d) - Y(0) ] - overall treatment effect of the optimal treatment rule
+7. E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0] - comparison of treatment effects between subgroups of those recommended and not recommended treatment
 
 ```
-                               Results for  threshold =  0  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            2.5842              0.0438              2.4984              2.67                
-E[Y(0) | d(Z) = 1]            1.7756              0.0369              1.7032              1.8479              
-E[d(Z) = 1]                   0.519               0.0071              0.5051              0.5329              
-E[Y(d) - Y(0) | d(Z) = 1]     0.8087              0.043               0.7243              0.893               
-E[Y(d) - Y(0)]                0.4195              0.023               0.3743              0.4646              
+                                Results for  threshold =  0  Aggregated Across k =  5  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          2.5982              0.043               2.5139              2.6825              
+E[Y(0) | d(Z) = 1]                                          1.8235              0.0379              1.7491              1.8978              
+E[d(Z) = 1]                                                 0.4822              0.0071              0.4683              0.4961              
+E[Y(1) - Y(0) | d(Z) = 1]                                   0.7747              0.0436              0.6893              0.8601              
+E[Y(1) - Y(0) | d(Z) = 0]                                   -0.7899             0.0442              -0.8764             -0.7033             
+E[Y(d) - Y(0)]                                              0.3734              0.0217              0.3308              0.416               
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       1.5645              0.062               1.4429              1.6861              
 
-Covariates used in decision rule:  W1
+Covariates used in decision rule:  W1 
 
 ```
 
@@ -123,7 +133,7 @@ A positive threshold indicates a desirable outcome (treat if CATE > threshold), 
                                 sl.library.treatment = sl.library.treatment,
                                 sl.library.missingness = sl.library.missingness,
                                 threshold = decision_thresholds,
-                                k_folds = 2,
+                                k_folds = 5,
                                 ps_trunc_level = 0.01,
                                 outcome_type = "gaussian")
     
@@ -131,39 +141,45 @@ A positive threshold indicates a desirable outcome (treat if CATE > threshold), 
 
 ```
 ```
-                      Results for  threshold =  -0  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            2.5863              0.0439              2.5004              2.6723              
-E[Y(0) | d(Z) = 1]            1.7706              0.0368              1.6985              1.8426              
-E[d(Z) = 1]                   0.5182              0.0071              0.5043              0.5321              
-E[Y(d) - Y(0) | d(Z) = 1]     0.8158              0.0429              0.7317              0.8999              
-E[Y(d) - Y(0)]                0.4227              0.023               0.3776              0.4678              
+                               Results for  threshold =  -0  Aggregated Across k =  5  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          -0.5736             0.0421              -0.6561             -0.491              
+E[Y(0) | d(Z) = 1]                                          0.2306              0.0378              0.1566              0.3047              
+E[d(Z) = 1]                                                 0.5168              0.0071              0.503               0.5306              
+E[Y(1) - Y(0) | d(Z) = 1]                                   -0.8042             0.0441              -0.8905             -0.7178             
+E[Y(1) - Y(0) | d(Z) = 0]                                   0.7833              0.0435              0.6979              0.8686              
+E[Y(d) - Y(0)]                                              -0.4148             0.0235              -0.4609             -0.3687             
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       -1.5875             0.0619              -1.7089             -1.4661             
 
 Covariates used in decision rule:  W1 
 
-                      Results for  threshold =  -0.05  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            2.5409              0.0431              2.4565              2.6253              
-E[Y(0) | d(Z) = 1]            1.7522              0.0362              1.6812              1.8232              
-E[d(Z) = 1]                   0.5348              0.0071              0.521               0.5486              
-E[Y(d) - Y(0) | d(Z) = 1]     0.7887              0.0422              0.706               0.8714              
-E[Y(d) - Y(0)]                0.4218              0.0233              0.3762              0.4673              
+                               Results for  threshold =  -0.05  Aggregated Across k =  5  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          -0.6187             0.0427              -0.7024             -0.5349             
+E[Y(0) | d(Z) = 1]                                          0.2001              0.0384              0.1249              0.2753              
+E[d(Z) = 1]                                                 0.499               0.0071              0.4851              0.5129              
+E[Y(1) - Y(0) | d(Z) = 1]                                   -0.8187             0.0449              -0.9068             -0.7307             
+E[Y(1) - Y(0) | d(Z) = 0]                                   0.7408              0.0429              0.6566              0.825               
+E[Y(d) - Y(0)]                                              -0.4077             0.0232              -0.4531             -0.3623             
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       -1.5595             0.0621              -1.6813             -1.4377             
 
 Covariates used in decision rule:  W1 
 
-                      Results for  threshold =  -0.10  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            2.477               0.0425              2.3937              2.5604              
-E[Y(0) | d(Z) = 1]            1.7291              0.0356              1.6592              1.799               
-E[d(Z) = 1]                   0.5552              0.007               0.5414              0.569               
-E[Y(d) - Y(0) | d(Z) = 1]     0.748               0.0415              0.6665              0.8294              
-E[Y(d) - Y(0)]                0.4152              0.0237              0.3688              0.4616              
+                               Results for  threshold =  -0.10  Aggregated Across k =  5  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          -0.6813             0.0435              -0.7665             -0.5961             
+E[Y(0) | d(Z) = 1]                                          0.1827              0.0393              0.1056              0.2598              
+E[d(Z) = 1]                                                 0.4776              0.0071              0.4638              0.4914              
+E[Y(1) - Y(0) | d(Z) = 1]                                   -0.864              0.0457              -0.9537             -0.7744             
+E[Y(1) - Y(0) | d(Z) = 0]                                   0.7186              0.0421              0.636               0.8012              
+E[Y(d) - Y(0)]                                              -0.4119             0.0227              -0.4564             -0.3673             
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       -1.5826             0.0622              -1.7045             -1.4608             
 
 Covariates used in decision rule:  W1 
 ```
@@ -201,6 +217,7 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
   
   nuisance_models <- nuisance_output$nuisance_models
   k_fold_assign_and_CATE <- nuisance_output$k_fold_assign_and_CATE
+  validRows <- nuisance_output$validRows
   
   # List of different sets of covariates to use to estimate CATE model 
   Z_lists <- list(c("W1"), c("W2"), c("W1", "W2"))
@@ -215,6 +232,7 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
                           W_list = W_list,
                           Z_list = Z_list,
                           id_name = NULL,
+                          validRows = validRows,
                           sl.library.CATE = sl.library.CATE,
                           nuisance_models = nuisance_models,
                           k_fold_assign_and_CATE = k_fold_assign_and_CATE,
@@ -233,59 +251,66 @@ Alternatively, nuisance models could be pre-fit for a given set of covariates `W
 
 ```
 [[1]]
-                      Results for  threshold =  0  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            2.5873              0.0438              2.5013              2.6732              
-E[Y(0) | d(Z) = 1]            1.7814              0.0366              1.7097              1.8532              
-E[d(Z) = 1]                   0.5186              0.0071              0.5048              0.5324              
-E[Y(d) - Y(0) | d(Z) = 1]     0.8058              0.043               0.7215              0.8901              
-E[Y(d) - Y(0)]                0.417               0.023               0.372               0.462               
+                               Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          2.6006              0.043               2.5162              2.6849              
+E[Y(0) | d(Z) = 1]                                          1.8179              0.038               1.7434              1.8925              
+E[d(Z) = 1]                                                 0.4838              0.0071              0.4699              0.4977              
+E[Y(1) - Y(0) | d(Z) = 1]                                   0.7827              0.0437              0.697               0.8683              
+E[Y(1) - Y(0) | d(Z) = 0]                                   -0.7946             0.0443              -0.8814             -0.7079             
+E[Y(d) - Y(0)]                                              0.3787              0.0219              0.3358              0.4216              
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       1.5773              0.0622              1.4554              1.6992              
 
 Covariates used in decision rule:  W1 
 
 
 [[2]]
-                      Results for  threshold =  0  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            1.5859              0.0493              1.4893              1.6826              
-E[Y(0) | d(Z) = 1]            1.5175              0.0341              1.4507              1.5842              
-E[d(Z) = 1]                   0.704               0.0049              0.6944              0.7136              
-E[Y(d) - Y(0) | d(Z) = 1]     0.0685              0.0436              -0.017              0.154               
-E[Y(d) - Y(0)]                0.0231              0.0276              -0.0309             0.0771              
+                               Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          -9e-04              0.0617              -0.1218             0.1199              
+E[Y(0) | d(Z) = 1]                                          0.0366              0.048               -0.0574             0.1306              
+E[d(Z) = 1]                                                 0.4226              0.0062              0.4104              0.4348              
+E[Y(1) - Y(0) | d(Z) = 1]                                   -0.0376             0.0569              -0.1491             0.0739              
+E[Y(1) - Y(0) | d(Z) = 0]                                   -0.0422             0.047               -0.1342             0.0499              
+E[Y(d) - Y(0)]                                              -0.0122             0.0212              -0.0538             0.0294              
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       0.0046              0.0738              -0.14               0.1492              
 
 Covariates used in decision rule:  W2 
 
 
 [[3]]
-                      Results for  threshold =  0  Aggregated Across k =  2  folds 
---------------------------------------------------------------------------------------------------------- 
-                              Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
---------------------------------------------------------------------------------------------------------- 
-E[Y(d) | d(Z) = 1]            2.6106              0.0437              2.5249              2.6962              
-E[Y(0) | d(Z) = 1]            1.8021              0.0366              1.7304              1.8738              
-E[d(Z) = 1]                   0.5168              0.0071              0.503               0.5306              
-E[Y(d) - Y(0) | d(Z) = 1]     0.8084              0.0431              0.7239              0.893               
-E[Y(d) - Y(0)]                0.4168              0.0229              0.3718              0.4618              
+                               Results for  threshold =  0  Aggregated Across k =  2  folds 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          2.5928              0.0432              2.5081              2.6775              
+E[Y(0) | d(Z) = 1]                                          1.8004              0.0382              1.7255              1.8754              
+E[d(Z) = 1]                                                 0.48                0.0071              0.4661              0.4939              
+E[Y(1) - Y(0) | d(Z) = 1]                                   0.7923              0.0438              0.7065              0.8782              
+E[Y(1) - Y(0) | d(Z) = 0]                                   -0.7924             0.0441              -0.8789             -0.7059             
+E[Y(d) - Y(0)]                                              0.3804              0.0218              0.3377              0.4231              
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       1.5848              0.0621              1.463               1.7066              
 
 Covariates used in decision rule:  W1, W2 
 ```
 
-The results object has the following structure:
+The full results object (class `full_otr_results`) has the following structure:
 
 ```
 results_object
-|_results   
+|_results (class `otr_results`)  
   |_threshold = t1 `Results` object  
     |_aggregated_results  
     |_k_fold_results  
-    |_decision_df  
+    |_decision_df
   |_ threshold = t2 `Results` object  
   |_ ...  
   |_ threshold = tn `Results` object  
+  |_Z_list
 |_nuisance_models  
   |_fold 1 `Nuisance` object  
     |_outcome_model  
@@ -307,7 +332,7 @@ Aggregated and individual level decisions by threshold and fold can be accessed 
 The compare.otr_results function can be used to compare treatment effects and subgroup effects across treatment rules and thresholds.
 
 ```
-compare.otr_results(results_list[[1]], results_list[[2]], 0, 0, "te", "te")
+compare.otr_results(results_list[[1]], results_list[[2]], 0, "te", "te")
 ```
 
 ```
@@ -317,7 +342,7 @@ compare.otr_results(results_list[[1]], results_list[[2]], 0, 0, "te", "te")
 --------------------------------------------------------------------------------------------------------- 
                               Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
 --------------------------------------------------------------------------------------------------------- 
-Rule 1 - Rule 2               0.4364              0.0514              0.3357              0.5371              
+Rule 1 - Rule 2               0.3908              0.0221              0.3474              0.4342              
 
  Rule 1: Z =  W1
  Rule 2: Z =  W2
