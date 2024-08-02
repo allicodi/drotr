@@ -184,7 +184,9 @@ E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       -1.5826             
 Covariates used in decision rule:  W1 
 ```
 
-Alternatively, nuisance models could be pre-fit for a given set of covariates `W`. This is helpful for cycling through multiple potential decision rules (multiple sets of `Z`).
+Alternatively, nuisance models could be pre-fit for a given set of covariates `W`. The `validRows` argument must be used to pass fold assignments through from step to step. 
+
+Pre-fitting nuisance models may be helpful when cycling through multiple potential decision rules (multiple sets of `Z`).
 
 ```R
   
@@ -347,4 +349,51 @@ Rule 1 - Rule 2               0.3908              0.0221              0.3474    
  Rule 1: Z =  W1
  Rule 2: Z =  W2
  
+```
+
+It may be helpful to repeat analyses across multiple seeds to examine average performance. 
+The `average_across_seeds` helper function can be used to assist with averaging results. 
+
+```
+
+results_list <- vector(mode = "list", length = 5)
+
+for(seed in 1:5){
+
+  set.seed(seed)
+  results_list[[seed]] <- estimate_OTR(df = df,
+                                Y_name = "Y",
+                                A_name = "A",
+                                W_list = W_list,
+                                Z_list = Z_list,
+                                id_name = NULL, 
+                                sl.library.CATE = sl.library.CATE,
+                                sl.library.outcome = sl.library.outcome,
+                                sl.library.treatment = sl.library.treatment,
+                                sl.library.missingness = sl.library.missingness,
+                                threshold = decision_thresholds,
+                                k_folds = 5,
+                                ps_trunc_level = 0.01,
+                                outcome_type = "gaussian")
+
+}
+
+average_across_seeds(results_list, -0.05)
+
+```
+
+```
+                                          Average results across n =  5  seeds for threshold  -0.05 
+--------------------------------------------------------------------------------------------------------------------------------------- 
+                                                            Estimate            Standard Error      95% CI: Lower       95% CI: Upper       
+--------------------------------------------------------------------------------------------------------------------------------------- 
+E[Y(1) | d(Z) = 1]                                          -0.6031             0.0431              -0.6875             -0.5187             
+E[Y(0) | d(Z) = 1]                                          0.2253              0.0386              0.1498              0.3009              
+E[d(Z) = 1]                                                 0.4978              0.0071              0.4839              0.5117              
+E[Y(1) - Y(0) | d(Z) = 1]                                   -0.8285             0.0451              -0.9168             -0.7402             
+E[Y(1) - Y(0) | d(Z) = 0]                                   0.7448              0.0427              0.661               0.8286              
+E[Y(d) - Y(0)]                                              -0.4123             0.0232              -0.4578             -0.3668             
+E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]       -1.5733             0.0621              -1.695              -1.4515             
+
+Covariates used in decision rule:  W1, W2 
 ```

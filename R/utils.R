@@ -593,12 +593,13 @@ print.average_results <- function(x, ...){
   Z_list <- x$Z_list
   n <- x$n_seeds
   results_table <- x$results_table
+  threshold <- x$threshold
 
   row_names <- rownames(results_table)
   col_names <- colnames(results_table)
 
   # Print header with dashed line
-  cat(paste("                                 Average results across n = ", n, " seeds \n"))
+  cat(paste("                                        Average results across n = ", n, " seeds for threshold ",threshold,"\n"))
   cat(paste(rep("-", 135), collapse = ""), "\n")
   cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
   cat(paste(rep("-", 135), collapse = ""), "\n")
