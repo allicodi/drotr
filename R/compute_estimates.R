@@ -156,7 +156,8 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     threshold_results <- list(
       aggregated_results = aggregated_results,
       k_fold_results = k_fold_results,
-      decision_df = decision_df
+      decision_df = decision_df,
+      k_non_na = k_non_na
     )
 
     class(threshold_results) <- "Results"
