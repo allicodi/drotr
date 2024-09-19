@@ -97,14 +97,14 @@ estimate_OTR <- function(df,
                                       k_fold_assign_and_CATE,
                                       nuisance_models, CATE_models,
                                       threshold, ps_trunc_level, truncate_CATE)
-
+  
   results <- list(results)
   names(results) <- "results"
 
   results$nuisance_models <- nuisance_models
   results$CATE_models <- CATE_models
   results$Z_list <- Z_list
-  results$results$Z_list <- Z_list # adding in two places so full object print or just results subsection prints
+  results$results$Z_list <- Z_list # adding in two places so full object print or just results subsection prints (so could opt to save partial results)
 
   class(results$results) <- "otr_results"
   class(results) <- "full_otr_results"

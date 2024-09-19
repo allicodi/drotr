@@ -1,0 +1,57 @@
+---
+title: "drotr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{drotr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(drotr)
+```
+
+# drotr
+
+\code{drotr} is a package that uses doubly-robust methods to estimate optimal treatment rules (OTRs).
+
+We define OTRs through the use of conditional average treatment effects (CATEs).
+The CATE can be interpreted as the expected difference in outcome under treatment vs placebo.
+A doubly-robust learner is used to estimate the CATE. All individuals with CATE estimates that exceed a specified threshold 't' are treated under the OTR. 
+In other words, we only treat individuals if the treatment reduces their probability of the adverse outcome by more than 't'.
+
+Once observations are assigned treatment under the OTR, we can measure the risk of outcome in the optimally treated and the average treatment effects among the optimally treated. 
+We estimate these using Augmented Inverse Probability of Treatment Weight (AIPTW) estimators.
+
+## Installation:
+
+A developmental release may be installed from GitHub via devtools with:
+```{r}
+devtools::install_github("allicodi/drotr")
+```
+
+## Usage:
+
+First, load the package:
+
+```{r, message = FALSE, warning = FALSE}
+library(drotr)
+```
+
+The following examples use a toy data set (`abcd_data`) that comes with the package. `abcd_data` is a simulated dataset with 40 covariates, 1 treatment, and 1 response variable that closely follows real data from the AntiBiotics for Children with severe Diarrhea (ABCD) trial. The simulated dataset included in this package has n=6692 observations. 
+
+```{r}
+data(abcd_data)
+head(abcd_data)
+```
+
+In this example, we will aim to simulate the effect of azithromycin, an antibiotic commonly used against diarrheal pathogens, on linear growth 90 days after trial enrollment. We want to estimate an optimal treatment rule (OTR) based on a subset of covariates `Z`. `Y` may also contain missing data. 
+
+*** IN PROGRESS ***

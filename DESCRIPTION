@@ -21,3 +21,4 @@ Suggests:
 VignetteBuilder: knitr
 URL: https://github.com/allicodi/drotr
 RoxygenNote: 7.3.1
+LazyData: true

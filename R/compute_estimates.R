@@ -105,7 +105,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 
     # If any folds contained NA, do not count in computing overall results (cases when a fold recommends treatment to everybody or nobody)
     k_non_na <- which(!(is.na(k_fold_subgroup_effect$var_subgroup_effect) | is.na(k_fold_EY_Ad_dZ1$var_aug)))
-
+  
     non_na_k_fold_EY_Ad_dZ1 <- k_fold_EY_Ad_dZ1[k_non_na,]
     non_na_k_fold_EY_A0_dZ1 <- k_fold_EY_A0_dZ1[k_non_na,]
     non_na_k_fold_E_dZ1 <- k_fold_E_dZ1[k_non_na,]
@@ -156,7 +156,8 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     threshold_results <- list(
       aggregated_results = aggregated_results,
       k_fold_results = k_fold_results,
-      decision_df = decision_df
+      decision_df = decision_df,
+      k_non_na = k_non_na
     )
 
     class(threshold_results) <- "Results"
