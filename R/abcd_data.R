@@ -1,7 +1,7 @@
 #' Simulated data from AntiBiotics for Children with severe Diarrhea (ABCD) trial
 #' 
 #' Simulated dataset based closely on real data from ABCD trial with 40 covariates 
-#' and n = 50,000 observations. The outcome variable is length-for-age z-score at 
+#' and n = 6692 observations. The outcome variable is length-for-age z-score at 
 #' day 90 of the trial (laz90) and the treatment variable is azithromycin (an_grp_01).
 #' Details on the distribution of each variable can be found in *cite paper?*
 #' 
@@ -88,7 +88,6 @@
 #'  \item{month_en}{Month enrolled (1-12 correspond to January-December)}
 #'  \item{lazd90}{Length for age z-score at day 90 post-enrollment}
 #'  }
-#' }
 #' 
 #' @keywords datasets
 #' 

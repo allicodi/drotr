@@ -1,11 +1,18 @@
 
 # `drotr`
 
+**Author:** Allison Codi
+
+## Description
+
 `drotr` is a package that uses doubly-robust methods to estimate optimal treatment rules (OTRs).
 
-We define OTRs through the use of conditional average treatment effects (CATEs). The CATE can be interpreted as the expected difference in outcome under treatment vs placebo. A doubly-robust learner is used to estimate the CATE. All individuals with CATE estimates that exceed a specified threshold 't' are treated under the OTR. In other words, we only treat individuals if the treatment reduces their probability of the adverse outcome by more than 't'. 
+We define OTRs through the use of conditional average treatment effects (CATEs). The CATE can be interpreted as the expected difference in outcome under treatment vs placebo. A doubly-robust learner is used to estimate the CATE. All individuals with CATE estimates that exceed a specified threshold 't' are treated under the OTR. 
 
-Once observations are assigned treatment under the OTR, we can measure the risk of outcome in the optimally treated and the average treatment effects among the optimally treated. We estimate these using Augmented Inverse Probability of Treatment Weight (AIPTW) estimators.
+Once observations are assigned treatment under the OTR, we can use various estimands to describe the rule: (1) the proportion treated, (2) the overall Average Treatment effect under the Rule (ATR_d), (3) the Average Treatment effect in the subgroup Recommended Treatment under the rule (ATRT_d), (4) the Average Treatment effect in the subgroup Not Recommended Treatment under the rule (ATNRT_d), and (5) the difference between treatment recommendation subgroups (ATRT_d - ATNRT_d).
+These are estimated using Augmented Inverse Probability of Treatment Weight (AIPTW) estimators.
+
+The full procedure is implemented using nested cross-validation and Super Learning.
 
 ## Installation:
 
@@ -15,7 +22,55 @@ A developmental release may be installed from GitHub via devtools with:
 
 ## Usage:
 
-Suppose we have a dataset `df` consisting of continuous or binary outcome variable `Y`, baseline covariates `W`, and binary treatment variable `A`. We want to estimate an optimal treatment rule (OTR) based on a subest of covariates `Z`. `Y` may also contain missing data. 
+Here we demonstrate calls to `drotr` using a simulated data set of length-for-age z-score 90 days post enrollment for a diarrheal antibiotics trial.
+
+```R
+
+library(drotr)
+
+# 1. Load data
+data(abcd_data)
+
+# 2. Set input parameters
+
+# outcome variable
+Y <- "lazd90"
+
+# treatment variable
+A <- "an_grp_01"
+
+# covariates 
+W <- c("rotavirus_new", "rotavirus_bin", "norovirus_new", "norovirus_bin", "adenovirus_new",
+      "adenovirus_bin", "sapovirus_new","sapovirus_bin", "astrovirus_new", "astrovirus_bin",
+      "st_etec_new", "st_etec_bin", "shigella_new", "shigella_bin", "campylobacter_new",
+      "campylobacter_bin", "tepec_new", "tepec_bin", "v_cholerae_new", "v_cholerae_bin",
+      "salmonella_new", "salmonella_bin", "cryptosporidium_new", "cryptosporidium_bin",
+      "dy1_scrn_vomitall", "dy1_scrn_lstools", "dy1_scrn_sstools", "dy1_scrn_diardays",
+      "dy1_scrn_dehydr", "avemuac", "wfazscore", "lfazscore", "wflzscore", "site",
+      "dy1_ant_sex", "agemchild", "an_ses_quintile", "an_tothhlt5", "month_en", "rotaseason")
+
+# subset of covariates to use to make rule
+Z <- c("avemuac", "wfazscore", "wflzscore", "lfazscore", "dy1_ant_sex", "agemchild", "an_ses_quintile")
+
+# treatment threshold
+t <- 0.05
+```
+
+## Issues
+
+If you encounter any bugs or have feature requests, please [file an issue](https://github.com/allicodi/drotr/issues).
+
+
+## Citation
+
+After using the `drotr` R package, please cite the following:
+
+@Manual{drotr_package,
+  title = {drotr: Doubly-robust optimal treatment rule estimation},
+  author = {Allison Codi},
+  note = {R packag version 1.0.0}
+}
+
 
 ```R
   
