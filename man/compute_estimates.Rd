@@ -47,6 +47,7 @@ compute_estimates(
  \item{\code{aggregated_results}}{dataframe of overall results aggregated across `k` folds for given threshold}
  \item{\code{k_fold_results}}{list of results by fold for given threshold}
  \item{\code{decision_df}}{original dataset with decision made for each observation at a given threshold}
+ \item{\code{k_non_na}}{folds that did not have proportion treated = 1 or = 0 (causing some effect estimates to be NA)}
  }
 }
 \description{

@@ -19,5 +19,5 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-URL: https://github.com/allicodi/drotr
+URL: https://github.com/allicodi/drotr, https://allicodi.github.io/drotr/
 RoxygenNote: 7.3.2

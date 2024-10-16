@@ -21,6 +21,7 @@
 #'  \item{\code{aggregated_results}}{dataframe of overall results aggregated across `k` folds for given threshold}
 #'  \item{\code{k_fold_results}}{list of results by fold for given threshold}
 #'  \item{\code{decision_df}}{original dataset with decision made for each observation at a given threshold}
+#'  \item{\code{k_non_na}}{folds that did not have proportion treated = 1 or = 0 (causing some effect estimates to be NA)}
 #'  }
 compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
                               k_fold_assign_and_CATE,
@@ -105,7 +106,7 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
 
     # If any folds contained NA, do not count in computing overall results (cases when a fold recommends treatment to everybody or nobody)
     k_non_na <- which(!(is.na(k_fold_subgroup_effect$var_subgroup_effect) | is.na(k_fold_EY_Ad_dZ1$var_aug)))
-
+  
     non_na_k_fold_EY_Ad_dZ1 <- k_fold_EY_Ad_dZ1[k_non_na,]
     non_na_k_fold_EY_A0_dZ1 <- k_fold_EY_A0_dZ1[k_non_na,]
     non_na_k_fold_E_dZ1 <- k_fold_E_dZ1[k_non_na,]

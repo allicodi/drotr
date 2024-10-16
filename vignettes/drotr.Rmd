@@ -1,0 +1,399 @@
+---
+title: "drotr"
+author: |
+  | Allison Codi
+  | allison.codi@emory.edu
+abstract: >
+    Optimal treatment rules (OTRs) are decision-making policies that assign treatment based on an individual's observed characteristics in a way that maximizes their expected outcome. While many methods exist for the creation of such rules, we propose a novel framework that creates treatment recommendations conditional on a subset of available information and constrains these recommendations to individuals with a clinically relevant conditional average treatment effect (CATE). We make use of a nested cross-validation procedure with Super Learning to estimate a doubly robust (DR)-learner and recommend treatment to patients whose predicted treatment effect meets the pre-set threshold. We then use an augmented inverse probability of treatment weighted estimator (AIPTW) to estimate several quantities describing outcomes under the OTR: (1) the proportion treated, (2) the overall Average Treatment effect under the Rule ($ATR_d$), (3) the Average Treatment effect in the subgroup Recommended Treatment under the rule ($ATRT_d$), (4) the Average Treatment effect in the subgroup Not Recommended Treatment under the rule ($ATNRT_d$), and (5) the difference between treatment recommendation subgroups ($ATRT_d - ATNRT_d$). The doubly-robust properties of the DR-learner and AIPTW ensure accurate estimation of the CATE and estimands of interest if some combination of nuisance parameters used to build them are consistently estimated. The vignette provides a brief introduction to the `drotr` package and demonstrates its use on a simulated dataset. 
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{drotr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: refs.bib
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, echo = FALSE}
+library(drotr)
+```
+
+# Introduction
+
+<!--- note this is taken almost exactly from rewritten intro of paper, maybe need to modify more? ---> 
+
+Optimal treatment rules (OTRs) are policies that assign treatment based on an individual's observed characteristics to maximize the counterfactual outcome of individual patients. OTRs are of increasing interest in fields like healthcare given treatments can have varying effects across population subgroups. While there are many ways to define OTRs, one estimand commonly used is the Conditional Average Treatment Effect (CATE). The CATE measures the expected difference in counterfactual outcome between different treatments given a subset of covariates. CATE estimation often relies on assumptions that, if violated, can lead to inaccurate results. Additionally, recommending treatment to all individuals with a CATE indicating they benefit from treatment may not be practical due to challenges such as resource limitations or population-level consequences of overprescribing.
+
+We overcome these challenges through a doubly-robust method for learning OTRs and estimating average treatment effects under the rules. Our OTRs are constrained to assign treatment to individuals with a clinically relevant treatment effect size. We use a doubly robust (DR)-learner to estimate the CATE, ensuring accurate estimation if at least some combination of nuisance parameters are consistently estimated [@kennedy_towards_2023]. A Super Learner ensemble is used to optimally combine candidate models for treatment rule estimation in a way that minimizes cross-validated risk and uncovers treatment effect heterogeneity more effectively than traditional approaches [@luedtke_super-learning_2016], [@montoya_optimal_2023]. Given treatment decisions made under the OTR, we identify the following quantities to describe outcomes under the OTR: (1) the proportion treated, (2) the Average Treatment effect of the Rule ($ATR_d$), (3) the Average Treatment effect in the subgroup Recommended Treatment under the rule ($ATRT_d$), (4) the Average Treatment effect in the subgroup Not Recommended Treatment under the rule ($ATNRT_d$), and (5) the difference between subgroups. We estimate these quantities using the augmented inverse probability of treatment weighted estimator (AIPTW) to maintain the doubly-robust property in line with the CATE [@kurz_aiptw_2022]. We can compare expected outcomes under different OTRs to identify which covariates are most informative and thus should be focused on in policymaking. Our method is unbiased and has 95\% confidence interval coverage of data-adaptive parameters. 
+
+# Methods
+
+## Notation
+
+Let $W \in \mathcal{W}$ denote the full set of covariates in the data. We then consider a subset of these covariates $Z$ to create our OTR such that $Z \subseteq W$. Let $A \in \{0,1\}$ be a binary treatment decision in which $A = 1$ if an observation is assigned treatment and $A = 0$ otherwise. Lastly, let $Y \in \mathcal{Y}$ be a real-valued outcome variable. We denote missingness in outcome variable $Y$ using $\Delta \in \{0,1\}$ where $\Delta = 0$ if the outcome is missing and $\Delta = 1$ if the outcome is observed. We observe an independent and identically distributed (i.i.d) sample of observations $O_i = (W_i, A_i,\Delta_i, \Delta_iY_i) \sim P_0 \in \mathcal{P}$, where $P_0$ is an unknown distribution in model $\mathcal{P}$.
+
+We introduce counterfactual outcome $Y(a, \Delta = 1) \sim P_{0, a, \Delta = 1}$ for every treatment assignment $\mathcal{a \in A}$. The counterfactual outcome represents the outcome that would have been observed if, perhaps contrary to actual assignments, each observation was assigned to treatment $\mathcal{a}$ and no outcomes were missing.
+
+## Parameters of Interest 
+
+The counterfactual outcomes can be used to quantify the effect of treatment in subgroups of patients with $Z$ characteristics through the use of the Conditional Average Treatment Effect (CATE). We define the CATE as $\mathcal{\psi(z)} = E[Y(a = 1, \Delta = 1) | Z = z] - E[Y(a = 0, \Delta = 1) | Z = z]$. The CATE is the expected difference in counterfactual outcome for treatment vs placebo in a subgroup of patients with covariates $Z$. If the outcome is binary, $\psi(Z)$ represents the causal risk difference in the sub-population with covariate values $Z=z$, while if the outcome is continuous, $\psi(Z)$ represents the causal difference in expected outcome for the same subpopulation.
+
+Consider a decision rule $d$ that assigns treatment to indiviuals based on their specific covariate values. We wish to consider an *optimal* treatment rule such that we assign treatment to all individuals who would benefit and to none who would be harmed. To do this, we use the CATE to build our rule such that $d(Z) = I(\psi(Z) < 0)$ if $Y$ is an undesirable outcome and $d(Z) = I(\psi(Z) > 0)$ if Y is a desirable outcome. We may further constrain these OTRs to only recommend treatment to individuals with a CATE that reaches magnitude $t$:
+
+$$
+d(Z) =
+\begin{cases}
+  0 & \psi(Z) < t \\
+  1 & \mbox{otherwise}
+\end{cases}
+$$
+By constraining our OTR, we are able to identify subgroups that would experience the greatest benefit under the OTR, balancing benefits of treatment with potential resource restrictions or limitations. 
+
+## Effect Estimands
+
+We may use various effect estimands to quantify the impact of our constrained OTR on the target population. We focus on the following: 
+
+1. *Average Treatment effect among those Recommended Treatment by rule d *($ATRT_d$): $E[Y(1) - Y(0) | d(Z) = 1]$
+2. *Average Treatment effect among those Not Recommended Treatment by rule d *($ATNRT_d$): $E[Y(1) - Y(0) | d(Z) = 0]$
+3. *Proportion Treated*: $E[d(Z) = 1]$
+4. *Average Treatment effect under Rule d * ($ATR_d$): $E[Y(1) - Y(0)]$
+5. *Difference between subgroups* ($ATRT_d - ATRNT_d$): $E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]$
+
+## Estimation
+
+Our approach makes use of nested cross-validation to estimate the CATE. We partition the data into $K$ splits of approximately equal size to define the outer *K* folds. The *$k^{th}$* partition serves as the validation sample, while the remaining *$K - 1$* partitions serve as the training sample. The training samples are partitioned further into $V$ splits to define $V$ inner folds, with the $v^{th}$ serving as the validation sample and the $V - 1$ serving as the training sample. We fix $V = 3$ to ensure adequate sample size within each of the inner validation folds. This nested cross-validation procedure helps to minimize risk of overfitting when estimating the CATE.
+
+Given a training sample, we follow the Doubly-robust (DR)-Learner approach outlined in [@kennedy_towards_2023]. Three 'nuisance' models used to build a pseudo-outcome: (1) an outcome model $\mu(a,w) = E[Y | \Delta = 1, A = a, W = w]$, a treatment model $\pi(a | w) = P(A = a | W = w)$, and a missingness model $\gamma(1 | a, w) = P(\Delta = 1 | A = a, W = w)$. Super Learner is used to fit regressions for each of the nuisance models. Given nuisance regression estimates, we define pseudo-outcome 
+
+$$
+\hat{D}_{k,v}^0(O_i) = \frac{(2A_i - 1)\Delta_i}{\hat{\pi}_{k,v}^0(A_i \mid W_i) \{ 1 - \hat{\gamma}_{k,v}^0(1 \mid A_i, W_i)\}} \{ Y_i - \hat{\mu}_{k,v}^0(A_i,W_i)\} + \{ \hat{\mu}_{k,v}^0(1, W_i) - \hat{\mu}_{k,v}^0(0, W_i)\} \ . 
+$$
+for each observation *i* in the *v*-th validation sample nested in the *k*-th training sample. We then fit a regression of the pseudo-outcome $\hat{D}_{k,v}^0(O_i)$ on $Z$ using data from teh $v$-th validation sample, denoting the regression $\hat{\psi}_{k,v}^1$. The process repeats for each of the $V$ inner cross-validation folds, resulting in CATE estimates $(\hat{\psi}_{k,v}^1: v= 1, \dots, V)$ which can be averaged to obtain an estimate of the CATE $\hat{\psi}_{k}^0 = \frac{1}{V}\sum_{v=1}^V \hat{\psi}_{k,v}^1$. We define our optimal treatment rule within the $k$-th fold as 
+
+$$
+\hat{d}_{k}^0(Z) = \left\{ \begin{array}{cc}
+   0 & \mbox{if } \hat{\psi}_{k}^0(Z) < t \\
+   1  & \mbox{otherwise}
+\end{array}\right. \ .
+$$
+
+We can now use our decision rule learned from the $k$-th training sample to estimate our effect estimands of interest. Let us identify the following quantities:
+
+- The average outcome under treatment *a* given recommendation of treatment *a'*: $E[Y(a) \mid \hat{d}_{k}^0(Z) = a']$ identified via $\theta_k(a \mid a') = E[E(Y \mid A = a, \Delta = 0, W) \mid \hat{d}_k^0(Z) = a']$
+- The proportion treated under the rule: $p_k = P(\hat{d_k^0}(Z) = 1)$
+
+Using this notation, $\theta_k(1|1) - \theta_k(0|1)$ represents the $ATRT_d$, $\theta_k(1|0) - \theta_k(0|0)$ represents the $ATNRT_d$, and $\{\theta_k(1|1) - \theta_k(0|1)\}p_k$ represents the $ATR_d$. We use augmented inverse probability of treatment weighted (AIPTW) estimates of $\theta_k(a |a')$. The forms of these estimators are given below. Let $\mathcal{I}_k^1$ denote a set containing the indices of observations in the $k$-th validation sample and let $n_k^1$ denote the cardinality of $\mathcal{I}_k^1$. To estimate $p_k$ we can use the estimate $\hat{p}_k^1 = (n_k^1)^{-1}\sum_{i: i \in \mathcal{I}_k^1} I(d_k^0(Z_j) = 1)$. To estimate $\theta_k(a \mid a')$, we define for each $i \in \mathcal{I}_k^1$,
+$$
+\begin{align*}
+T_i(a \mid a') &= \frac{I(d_k^0(Z_i) = a')}{\sum_{j: j \in \mathcal{I}_k^1} I(d_k^0(Z_j) = a')} \left[ 
+\frac{I(A_i = a, \Delta_i = 0)}{\hat{\pi}_k^0(a \mid W_i) \{1 - \hat{\gamma}_k^0(1 \mid a, W_i)\}} \{ Y_i - \hat{\mu}_{k}^0(a, W_i)\} + \hat{\mu}^0_k(a, W_i) \right] \ .
+\end{align*}
+$$
+An augmented inverse probability of treatment weighted (AIPTW) estimate of $\theta_k(a \mid a')$ is 
+$$
+\hat{\theta}_k^1(a \mid a') = \frac{1}{n_{k}^1}  \sum_{i: i \in \mathcal{I}_k^1} T_i(a \mid a') 
+$$
+The asymptotic variance of $n^{1/2} \hat{\theta}_k^1(a \mid a')$ can be estimated using 
+$$
+\hat{\sigma}^2_k = \frac{1}{n_{k}^1}  \sum_{i: i \in \mathcal{I}_k^1} \left\{ T_i(a \mid a') - \sum_{j: j \in \mathcal{I}_k^1}^n T_j(a \mid a') \right\}^2 \ 
+$$
+The delta method for influence functions can be used to compute estimates of the asymptotic variance of scaled estimates of the effect parameters. 
+
+We estimate the parameters in each outer cross-validation fold, then average them across folds to obtain overall estimates. A flowchart depicting the overall estimation procedure can be seen in the figure below.
+
+# Usage:
+
+First, load the package:
+
+```{r, message = FALSE, warning = FALSE}
+library(drotr)
+```
+
+The following example uses a toy data set (`abcd_data`) that comes with the package. `abcd_data` is a simulated dataset based on real data from the AntiBiotics for Children with severe Diarrhea (ABCD) trial. The dataset contains 40 covariates (`W`) and $n = 6692$ observations. <!--- Refer to **include data dictionary? or refer to supplement? but not sure if we're publishing this first ** for a data dictionary and description of the data generation process. --->
+
+```{r}
+data(abcd_data)
+head(abcd_data)
+```
+
+We aim to simulate the effect of azithromycin ($A = an\_grp\_01$), an antibiotic commonly used against diarrheal pathogens, on linear growth 90 days after trial enrollment ($Y = lazd90$). Approximately 4\% of outcomes `Y` are missing at random. We want to estimate an OTR based on a subset of covariates related to host characteristics measured at baseline ($Z = avemuac, wfazscore, wflzscore, lfazscore, dy1\_ant\_sex, agemchild, an\_ses\_quintile$). We test a threshold of $t = 0.05$ for treatment. That means patients will only be recommended treatment if they are expected to have benefit in linear growth at day 90 of the trial of 0.05 z-score or more compared to if they did not receive treatment.
+
+Note in this example, outcome is beneficial. CATEs exceeding the threshold are desirable and indicate high benefit from treatment. If the outcome were undesirable, we would want individuals with CATEs that are have a larger negative magnitude than the threshold to be recommended treatment. The package will automatically adjust for this when setting a negative threshold. However, if using a threshold of zero, make sure to enter "+0" or "-0" as a character string to indicate direction. 
+
+## Inputs 
+
+Let's set the parameters described above to be passed into the function:
+
+```{r}
+Y <- "lazd90"
+
+A <- "an_grp_01"
+
+W <- c("rotavirus_new", "rotavirus_bin", "norovirus_new", "norovirus_bin", "adenovirus_new",
+      "adenovirus_bin", "sapovirus_new","sapovirus_bin", "astrovirus_new", "astrovirus_bin",
+      "st_etec_new", "st_etec_bin", "shigella_new", "shigella_bin", "campylobacter_new",
+      "campylobacter_bin", "tepec_new", "tepec_bin", "v_cholerae_new", "v_cholerae_bin",
+      "salmonella_new", "salmonella_bin", "cryptosporidium_new", "cryptosporidium_bin",
+      "dy1_scrn_vomitall", "dy1_scrn_lstools", "dy1_scrn_sstools", "dy1_scrn_diardays",
+      "dy1_scrn_dehydr", "avemuac", "wfazscore", "lfazscore", "wflzscore", "site",
+      "dy1_ant_sex", "agemchild", "an_ses_quintile", "an_tothhlt5", "month_en", "rotaseason")
+
+Z <- c("avemuac", "wfazscore", "wflzscore", "lfazscore", "dy1_ant_sex", "agemchild", "an_ses_quintile")
+
+t <- 0.05
+```
+
+Next, we need to choose which libraries we are interested in using to fit our nuisance models. The SuperLearner package comes with wrappers for common prediction algorithms (see `SuperLearner::listWrappers()` for full list of available wrappers). We will choose several for our outcome model that should be able to capture the complex form of the outcome model.
+
+```{r}
+sl.library.outcome <- c("SL.glm", "SL.ranger", "SL.earth")
+```
+
+We know the ABCD trial was a randomized control trial, so `SL.mean` should be sufficient to estimate the 1:1 randomization. 
+```{r}
+sl.library.treatment <- c("SL.mean")
+```
+
+Additionally, one may wish to write their own wrappers for SuperLearner based on biological plausibility. In the simulated dataset, we know data is missing at random. However, one may hypothesize that the data is missing based on the variables month and site. We can specify a missingness model using these covariates as follows:
+
+```{r}
+SL.missing.1 <- function(Y, X, newX, family, ...){
+  sl.missing.1_fit <- glm(Y ~ site + month_en,
+                          data = X,
+                          family = family)
+  # get predictions on newX
+  pred <- predict(
+    sl.missing.1_fit, newdata = newX, type = 'response'
+  )
+  # format the output as named list
+  fit <- list(fitted_model.missing.1 = sl.missing.1_fit)
+  out <- list(fit = fit, pred = pred)
+  # give the object a class
+  class(out$fit) <- "SL.missing.1"
+  # return the output
+  return(out)
+}
+predict.SL.missing.1 <- function(object, newdata, ...){
+  pred <- predict(object$fitted_model.missing.1, newdata = newdata, type="response")
+  return(pred)
+}
+```
+
+We will include this new wrapper in our list of missingness models
+```{r}
+sl.library.missingness <- c("SL.mean", "SL.missing.1")
+```
+
+Lastly, we must specify CATE models that are sufficiently complex to capture the true treatment effect. 
+
+```{r}
+sl.library.CATE <- c("SL.glm", "SL.ranger", "SL.earth")
+```
+
+## Estimate OTR
+
+To run the analysis, we call `estimate_OTR()` with the parameters specified above. In addition, we specify the name of the id variable in the dataset (`pid`), the number of folds used in outer cross-validation (`k = 10`), and indicate that the outcome is continuous (`gaussian`). (Note the run-time of the chunk below is approximately 4 minutes using libraries specified above).
+
+```{r, warning=FALSE, eval = FALSE}
+set.seed(12345)
+
+results_host <- estimate_OTR(df = abcd_data,
+                             Y_name = Y, 
+                             A_name = A, 
+                             W_list = W, 
+                             Z_list = Z, 
+                             id_name = "pid",
+                             sl.library.outcome = sl.library.outcome,
+                             sl.library.treatment = sl.library.treatment,
+                             sl.library.missingness = sl.library.missingness,
+                             sl.library.CATE = sl.library.CATE,
+                             threshold = t,
+                             k_folds = 10,
+                             outcome_type = "gaussian")
+```
+
+Alternatively, we may choose to break this up into two steps- (1) for nuisance model estimation, and (2) for estimation of effects. This can be helpful to split up time-consuming analyses that use the same set of nuisance models repeatedly. To do this, start by calling the `learn_nuisance` function:
+
+```{r, warning = FALSE}
+nuisance_output <- learn_nuisance(df = abcd_data,
+                                  Y_name = Y,
+                                  A_name = A, 
+                                  W_list = W,
+                                  sl.library.outcome = sl.library.outcome,
+                                  sl.library.treatment = sl.library.treatment,
+                                  sl.library.missingness = sl.library.missingness,
+                                  k_folds = 10,
+                                  outcome_type = "gaussian")
+```
+
+This will return an object of class `nuisance` which contains model fits (`nuisance_models`), outer validation fold assignments and pseudo-outcomes (`k_fold_assign_and_CATE`), and inner validation fold assignments (`validRows`). These can be passed into `estimate_OTR` and avoid unnecessary re-fitting of models.
+
+```{r, warning = FALSE}
+nuisance_models <- nuisance_output$nuisance_models
+k_fold_assign_and_CATE <- nuisance_output$k_fold_assign_and_CATE
+validRows <- nuisance_output$validRows
+
+results_host <- estimate_OTR(df = abcd_data,
+                             Y_name = Y, 
+                             A_name = A, 
+                             W_list = W, 
+                             Z_list = Z, 
+                             id_name = "pid",
+                             sl.library.CATE = sl.library.CATE,
+                             nuisance_models = nuisance_models,
+                             k_fold_assign_and_CATE = k_fold_assign_and_CATE,
+                             validRows = validRows,
+                             threshold = t,
+                             k_folds = 10,
+                             outcome_type = "gaussian")
+
+```
+
+Once we have obtained results, we can print them in a table to console using `print`:
+
+```{r}
+print(results_host)
+```
+
+We can interpret the results as follows:
+
+$E[Y(1) | d(Z) = 1]$:  The expected length-for-age z-score at day 90 of the trial for children who are recommended treatment under the host OTR and receive treatment is -1.65 (95\% CI: -1.70 to -1.60).
+
+$E[Y(0) | d(Z) = 1]$:  The expected length-for-age z-score at day 90 of the trial for children who are recommended treatment under the host OTR but do not receive treatment is -1.72 (95\% CI: -1.77 to -1.66).
+
+$E[d(Z) = 1]$: The percentage of children recommended treatment under the host OTR is 42.92\% (95\% CI: 41.73\% to 44.10\%)
+
+$E[Y(1) - Y(0) | d(Z) = 1]$ / $ATRT_d$: The average treatment effect among those recommended treatment under the host OTR is 0.07 (95\% CI: 0.03 to 0.11). Children who are recommended treatment under the rule and receive it will have a length-for-age z-score that is 0.07 higher than if they had not received treatment. 
+
+$E[Y(1) - Y(0) | d(Z) = 0]$ / $ATNRT_d$: The average treatment effect among those *not* recommended treatment under the host OTR is 0.02 (95\% CI: -0.02 to 0.05). Children who are *not* recommended treatment under the rule yet still receive it would have a length-for-age z-score that is 0.02 higher than their z-score without receiving treatment. 
+
+$E[Y(d) - Y(0)]$ / $ATR_d$: The overall average treatment effect of the rule is 0.03 (95\% CI: 0.01 to 0.05). At a population level, implementation of the treatment rule improves length-for-age z-scores at day 90 of the trial by 0.03. 
+
+$E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]$ : The difference in treatment effect between the treated and untreated subgroups is 0.05 (95\% CI: 0.00 to 0.11)
+
+One may wish to examine other output in the final `full_otr_results` object. The `full_otr_results` contains the following elements:
+
+- **`results` (class `otr_results`)**  
+  This component contains results for various thresholds, each represented as a separate `Results` object.
+
+  - **`threshold = t1` (Results object)**  
+    - `aggregated_results`: Summary results across k CATE models
+    - `k_fold_results`: Results and influence functions from each of the k-folds
+    - `decision_df`: Data frame containing CATE prediction and decision for each observation
+    - `k_non_na`: Folds that did not result in proportion treated = 1 or 0 (leading to NA effect estimates)
+
+  - **`threshold = t2` (Results object)**  
+    - Same structure as `threshold = t1` if additional threshold(s) specified
+
+  - **`...`**  
+    - Additional thresholds can be added in the same manner.
+
+- **`nuisance_models`**  
+  A list of nuisance models used in the analysis.
+
+  - **`fold 1` (Nuisance object)**  
+    - `outcome_model`: Model for outcome.
+    - `treatment_model`: Model for the treatment.
+    - `missingness_model`: Model for missing data.
+
+  - **`fold 2` (Nuisance object)**  
+    - Structure similar to `fold 1`.
+
+  - **`...`**  
+    - Up to K nuisance models
+
+- **`CATE_models`**  
+  A list of CATE models generated during the analysis.
+
+  - **`fold 1`**: CATE model results for fold 1.
+  - **`fold 2`**: CATE model results for fold 2.
+  - **`...`**: Up to k CATE models
+
+- **`Z_list`**  
+  List of covariates used for CATE model
+  
+Note- results objects may become very large depending on the libraries used in model fitting. One could opt to save the `otr_results` object rather than the `full_otr_results` to conserve memory and maintain output printing functionality. 
+
+## Compare OTRs
+
+We may be interested in comparing results and making inference about them across different rules. Let's consider another OTR based on *Shigella* pathogen quantity.
+
+```{r, warning=FALSE}
+
+Z <- c("shigella_new", "shigella_bin")
+
+results_shigella <- estimate_OTR(df = abcd_data,
+                             Y_name = Y, 
+                             A_name = A, 
+                             W_list = W, 
+                             Z_list = Z, 
+                             id_name = "pid",
+                             sl.library.outcome = sl.library.outcome,
+                             sl.library.treatment = sl.library.treatment,
+                             sl.library.missingness = sl.library.missingness,
+                             sl.library.CATE = sl.library.CATE,
+                             threshold = t,
+                             k_folds = 10,
+                             outcome_type = "gaussian")
+
+print(results_shigella)
+
+```
+
+We can compare the average treatment effect among those recommended treatment under the rule ($ATRT_d$, subgroup effect) across rules by calling the `compare.otr_results` function.
+
+```{r}
+compare.otr_results(res_rule1 = results_host,
+                    res_rule2 = results_shigella,
+                    threshold = t, 
+                    rule1_comp = "se",
+                    rule2_comp = "se")
+```
+
+The difference in $ATRT_d$ between the host and *Shigella* rules is -0.17 (95\% CI: -0.25 to -0.09). The subgroup that is treated using a rule based on *Shigella* will have an average z-score that is 0.17 higher at day 90 than the average z-score of the subgroup that is treated using a rule based on host characteristics. A rule based on Shigella may be more effective at improving length-for-age z-score at day 90 than a rule based on host characteristics using a threshold of 0.05. 
+
+# Average results across seeds
+
+One may be interested in running multiple simulations for a set rule and averaging the results to account for random variability in the model fitting. The `average_across_seeds` function may be used to average the results.
+
+```{r, warning=FALSE}
+
+results_list <- vector(mode = "list", length = 3)
+
+for(seed in 1:3){
+  
+  set.seed(seed)
+  
+  results_shigella <- estimate_OTR(df = abcd_data,
+                                   Y_name = Y, 
+                                   A_name = A, 
+                                   W_list = W, 
+                                   Z_list = Z, 
+                                   id_name = "pid",
+                                   sl.library.outcome = sl.library.outcome,
+                                   sl.library.treatment = sl.library.treatment,
+                                   sl.library.missingness = sl.library.missingness,
+                                   sl.library.CATE = sl.library.CATE,
+                                   threshold = t,
+                                   k_folds = 10,
+                                   outcome_type = "gaussian")
+  
+  results_list[[seed]] <- results_shigella
+  
+}
+
+average_across_seeds(results_list = results_list, threshold = t)
+```
+
+
+# Session info
+```{r}
+sessionInfo()
+```
+

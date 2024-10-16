@@ -1,0 +1,5 @@
+url: https://allicodi.github.io/drotr/
+template:
+  bootstrap: 5
+  light-switch: true
+
