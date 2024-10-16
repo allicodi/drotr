@@ -10,3 +10,4 @@ Makefile
 drotr.Rproj
 wrappers.R
 inst/doc
+docs

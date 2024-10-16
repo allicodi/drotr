@@ -275,34 +275,47 @@ $E[Y(d) - Y(0)]$ / $ATR_d$: The overall average treatment effect of the rule is 
 
 $E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]$ : The difference in treatment effect between the treated and untreated subgroups is 0.05 (95\% CI: 0.00 to 0.11). *still unsure how to describe this/what it's meaning was?*
 
-One may wish to examine other output in the final `full_otr_results` object. The `full_otr_results` object has the following structure:
+One may wish to examine other output in the final `full_otr_results` object. The `full_otr_results` contains the following elements:
 
-results_object (class `full_otr_results`)
-|_results (class `otr_results`)  
-  |_threshold = t1 `Results` object  
-    |_aggregated_results  
-    |_k_fold_results  
-    |_decision_df
-    |_k_non_na
-  |_ threshold = t2 `Results` object  
-  |_ ...  
-  |_ threshold = tn `Results` object  
-  |_Z_list
-|_nuisance_models  
-  |_fold 1 `Nuisance` object  
-    |_outcome_model  
-    |_treatment_model  
-    |_missingess_model  
-  |_fold 2 `Nuisance` object  
-  |_ ...  
-  |_fold k `Nuisance` object  
-|_CATE_models  
-  |_ fold 1 CATE model  
-  |_ fold 2 CATE model  
-  |_ ... 
-  |_ fold k CATE model  
-|_Z_list  
+- **`results` (class `otr_results`)**  
+  This component contains results for various thresholds, each represented as a separate `Results` object.
 
+  - **`threshold = t1` (Results object)**  
+    - `aggregated_results`: Summary results across k CATE models
+    - `k_fold_results`: Results and influence functions from each of the k-folds
+    - `decision_df`: Data frame containing CATE prediction and decision for each observation
+    - `k_non_na`: Folds that did not result in proportion treated = 1 or 0 (leading to NA effect estimates)
+
+  - **`threshold = t2` (Results object)**  
+    - Same structure as `threshold = t1` if additional threshold(s) specified
+
+  - **`...`**  
+    - Additional thresholds can be added in the same manner.
+
+- **`nuisance_models`**  
+  A list of nuisance models used in the analysis.
+
+  - **`fold 1` (Nuisance object)**  
+    - `outcome_model`: Model for outcome.
+    - `treatment_model`: Model for the treatment.
+    - `missingness_model`: Model for missing data.
+
+  - **`fold 2` (Nuisance object)**  
+    - Structure similar to `fold 1`.
+
+  - **`...`**  
+    - Up to K nuisance models
+
+- **`CATE_models`**  
+  A list of CATE models generated during the analysis.
+
+  - **`fold 1`**: CATE model results for fold 1.
+  - **`fold 2`**: CATE model results for fold 2.
+  - **`...`**: Up to k CATE models
+
+- **`Z_list`**  
+  List of covariates used for CATE model
+  
 Note- results objects may become very large depending on the libraries used in model fitting. One could opt to save the `otr_results` object rather than the `full_otr_results` to conserve memory and maintain output printing functionality. 
 
 ### Compare OTRs
