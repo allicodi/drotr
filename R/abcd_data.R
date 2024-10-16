@@ -91,7 +91,7 @@
 #' 
 #' @keywords datasets
 #' 
-#' @references cite the paper?
+#' @references coming soon
 #' 
 #' @examples
 #' data(abcd_data)

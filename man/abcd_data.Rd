@@ -100,6 +100,6 @@ head(abcd_data)
 hist(abcd_data$lazd90)
 }
 \references{
-cite the paper?
+coming soon
 }
 \keyword{datasets}
