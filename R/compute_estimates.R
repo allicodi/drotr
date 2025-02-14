@@ -414,6 +414,8 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 #' @param ps_trunc_level threshold to truncate propensity score
 #' @param idx_sub indices of observations that are recommended treatment (d_pred == 1)
 #'
+#' @export
+#'
 #' @returns
 #' \describe{
 #'         (1) a - value of treatment
@@ -422,7 +424,6 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
 #'         (4) augmentation - vector of augmentation terms
 #'         (5) var_aug - variance of augmentation term
 #'         }
-#' @keywords internal
 calc_aiptw <- function(a, A, A_name, W, Y, I_Y,
                        d_pred, mean_dZ, outcome_model, treatment_model, missingness_model,
                        ps_trunc_level, idx_sub){

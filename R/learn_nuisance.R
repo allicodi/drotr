@@ -43,10 +43,16 @@ learn_nuisance <- function(df,
   }
 
   # split into k equal sized folds and randomly shuffle
-  folds <- cut(seq(1,nrow(df)),breaks=k_folds,labels=FALSE)
-  folds <- sample(folds)
-
-  fold_assignments <- data.frame(id = df$id, fold = folds)
+  if(k_folds > 1){
+    folds <- cut(seq(1,nrow(df)),breaks=k_folds,labels=FALSE)
+    folds <- sample(folds)
+    
+    fold_assignments <- data.frame(id = df$id, fold = folds)
+  } else{
+    folds <- rep(1, nrow(df))
+    fold_assignments <- data.frame(id = df$id, fold = folds)
+  }
+  
 
   k_fold_nuisance <- vector(mode = "list", length = k_folds)
   k_fold_assign_and_CATE <- data.frame()
@@ -55,8 +61,13 @@ learn_nuisance <- function(df,
 
   for(k in 1:k_folds){
 
-    df_learn <- df[-which(folds == k),] # train on all but kth fold
-
+    if(k_folds > 1){
+      df_learn <- df[-which(folds == k),] # train on all but kth fold
+    } else{
+      # assume external data, train on full dataset
+      df_learn <- df
+    }
+    
     output_learn <- learn_nuisance_k(df_learn,
                                       Y_name,
                                       A_name,

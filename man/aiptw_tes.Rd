@@ -12,13 +12,28 @@ aiptw_tes(
   W_list,
   Z_list,
   nuisance_models,
-  sl.library.outcome,
-  sl.library.treatment,
-  sl.library.missingness,
-  k_folds,
-  ps_trunc_level,
-  outcome_type
+  ps_trunc_level
 )
+}
+\arguments{
+\item{df}{dataframe containing external dataset to apply rule(s) to; must contain Z_list variables that are same as pre-trained rule(s)}
+
+\item{d_pred}{treatment decisions from single CATE model and threshold combo}
+
+\item{Y_name}{name of outcome variable in df}
+
+\item{A_name}{name of treatment variable in df}
+
+\item{W_list}{character vector containing names of covariates in the dataframe to be used for fitting nuisance models}
+
+\item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))}
+
+\item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
+
+\item{ps_trunc_level}{numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)}
+}
+\value{
+tbd
 }
 \description{
 Function to estimate treatment effects using AIPTW

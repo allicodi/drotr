@@ -59,4 +59,3 @@ calc_aiptw(
 \description{
 Function to calculate AIPTW
 }
-\keyword{internal}

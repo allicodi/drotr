@@ -12,14 +12,14 @@ compute_estimates_external(
   Z_list,
   CATE_preds,
   threshold,
-  te_method,
   nuisance_models,
   sl.library.outcome,
   sl.library.treatment,
   sl.library.missingness,
   k_folds,
   ps_trunc_level,
-  outcome_type
+  outcome_type,
+  id_name = NULL
 )
 }
 \arguments{
@@ -37,9 +37,9 @@ compute_estimates_external(
 
 \item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
-\item{te_method}{method for estimating treatment effects, default aiptw}
-
 \item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
+
+\item{te_method}{method for estimating treatment effects, default aiptw}
 }
 \value{
 tbd
