@@ -170,7 +170,7 @@ print.full_otr_results <- function(x, ...){
     colnames(tmp) <- col_names
 
     # Print header with dashed line
-    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
+    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$k_non_na), " folds \n"))
     cat(paste(rep("-", 135), collapse = ""), "\n")
     cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
     cat(paste(rep("-", 135), collapse = ""), "\n")
@@ -261,7 +261,7 @@ print.otr_results <- function(x, ...){
     colnames(tmp) <- col_names
 
     # Print header with dashed line
-    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$decision_df$k), " folds \n"))
+    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$k_non_na), " folds \n"))
     cat(paste(rep("-", 135), collapse = ""), "\n")
     cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
     cat(paste(rep("-", 135), collapse = ""), "\n")

@@ -14,8 +14,8 @@
 #' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
 #' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
 #' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
-#' @param k_folds integer number of folds to use for cross-validation (must specify if fitting outcome, treatment, and missingness models. Otherwise uses k from `k_fold_assign_and_CATE`)
-#' @param ps_trunc_level numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)
+#' @param k_folds integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here. Otherwise uses k from `k_fold_assign_and_CATE`)
+#' @param ps_trunc_level numeric level below which propensity scores will be truncated (to avoid errors in computing AIPTW)
 #' @param outcome_type outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)
 #' @param truncate_CATE logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)
 #'
@@ -28,7 +28,7 @@
 #'  \item{\code{CATE_models}}{CATE model used in each fold}
 #'  \item{\code{Z_list}}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 #'  }
-apply_OTRs <- function(df,
+apply_OTR <- function(df,
                        CATE_models,
                        Y_name,
                        A_name,
@@ -105,7 +105,7 @@ apply_OTRs <- function(df,
 #' 
 #' @export
 #' 
-#' @returns dataframe with column for id and CATE predictions for each CATE_model
+#' @returns dataframe with columns for id, CATEs for each model, and average CATE for rule
 predict_CATE_external <- function(df, CATE_models, Z_list, truncate_CATE = TRUE){
   
   Z <- df[, Z_list, drop = FALSE]
@@ -129,14 +129,15 @@ predict_CATE_external <- function(df, CATE_models, Z_list, truncate_CATE = TRUE)
     return(data.frame(CATE_pred = CATE_pred, trunc_flag = trunc_flag))
   }, truncate_CATE = truncate_CATE)
   
-  CATE_preds <- data.frame(id = df$id, data.frame(CATE_preds))
+  avg_CATE <- rowMeans(data.frame(CATE_preds), na.rm = TRUE)
+  CATE_preds <- data.frame(id = df$id, data.frame(CATE_preds), avg_CATE = avg_CATE)
   
   # colnames id, model_x, trunc_flag_x
   colnames(CATE_preds) <- c("id", 
                             unlist(lapply(1:length(CATE_models), function(i) {
                               c(paste0("model_", i), paste0("trunc_flag_", i))
-                              }))
-                            )
+                              })),
+                            "avg_CATE")
   
   return(CATE_preds)
 
@@ -176,7 +177,6 @@ compute_estimates_external <- function(df,
   # Fit nuisance or other model for pseudo-outcome if not pre-fit
   if(is.null(nuisance_models)){
     
-    # CHECK IF K = 1??
     nuisance_output <- drotr::learn_nuisance(df, 
                                              Y_name, 
                                              A_name, 
@@ -186,7 +186,7 @@ compute_estimates_external <- function(df,
                                              sl.library.treatment,
                                              sl.library.missingness, 
                                              outcome_type, 
-                                             k_folds = 1, 
+                                             k_folds = k_folds, 
                                              ps_trunc_level)
   }
   
@@ -208,32 +208,28 @@ compute_estimates_external <- function(df,
     }
     
     t <- as.numeric(t)
+    
+    # Get treatment decision for avg_CATE
+    if(sign == "-"){
+      d_pred <- ifelse(CATE_preds$avg_CATE < threshold, 1, 0)
+    } else {
+      d_pred <- ifelse(CATE_preds$avg_CATE > threshold, 1, 0)
+    }
   
-    # Get treatment decisions & effect estimates for given model
-    CATE_pred_cols <- seq(2, ncol(CATE_preds), by = 2)
-    CATE_k <- length(CATE_pred_cols)
+    # Get treatment decisions & effect estimates for given nuisance model
     
-    k_fold_EY_Ad_dZ1 <- vector("list", length = CATE_k )
-    k_fold_EY_A0_dZ1 <- vector("list", length = CATE_k )
-    k_fold_E_dZ1 <- vector("list", length = CATE_k )
-    k_fold_subgroup_effect <- vector("list", length = CATE_k )
-    k_fold_treatment_effect <- vector("list", length = CATE_k )
-    k_fold_inf_fn_matrix <- vector("list", length = CATE_k )
-    k_fold_subgroup_effect_dZ0 <- vector("list", length = CATE_k )
-    k_fold_compare_subgroup_effect <- vector("list", length = CATE_k )
+    k_fold_EY_Ad_dZ1 <- vector("list", length = k_folds )
+    k_fold_EY_A0_dZ1 <- vector("list", length = k_folds )
+    k_fold_E_dZ1 <- vector("list", length = k_folds )
+    k_fold_subgroup_effect <- vector("list", length = k_folds )
+    k_fold_treatment_effect <- vector("list", length = k_folds )
+    k_fold_inf_fn_matrix <- vector("list", length = k_folds )
+    k_fold_subgroup_effect_dZ0 <- vector("list", length = k_folds )
+    k_fold_compare_subgroup_effect <- vector("list", length = k_folds )
     
-    for(k in 1:CATE_k){
+    for(k in 1:k_folds){
       
-      # Get CATE predictions for given model
-      j <- CATE_pred_cols[k]
-      CATE_pred <- CATE_preds[,j]
-      
-      # Get treatment decision for each CATE_pred
-      if(sign == "-"){
-        d_pred <- ifelse(CATE_pred < threshold, 1, 0)
-      } else {
-        d_pred <- ifelse(CATE_pred > threshold, 1, 0)
-      }
+      nuisance_models_k <- nuisance_models[[k]]
       
       # Estimate treatment effects 
       compute_est_output <- drotr::aiptw_tes(df, 
@@ -242,7 +238,7 @@ compute_estimates_external <- function(df,
                                            A_name, 
                                            W_list, 
                                            Z_list,
-                                           nuisance_models,
+                                           nuisance_models_k,
                                            ps_trunc_level)
       
       k_fold_EY_Ad_dZ1[[k]] <- compute_est_output$EY_Ad_dZ1
@@ -265,41 +261,30 @@ compute_estimates_external <- function(df,
     k_fold_treatment_effect <- do.call(rbind, k_fold_treatment_effect)
     k_fold_compare_subgroup_effect <- do.call(rbind, k_fold_compare_subgroup_effect)
     
-    # If any folds contained NA, do not count in computing overall results (cases when a fold recommends treatment to everybody or nobody)
-    k_non_na <- which(!(is.na(k_fold_subgroup_effect$var_subgroup_effect) | is.na(k_fold_EY_Ad_dZ1$var_aug)))
+    # note removed NA folds logic- should not apply when using avg CATE/external dataset
     
-    non_na_k_fold_EY_Ad_dZ1 <- k_fold_EY_Ad_dZ1[k_non_na,]
-    non_na_k_fold_EY_A0_dZ1 <- k_fold_EY_A0_dZ1[k_non_na,]
-    non_na_k_fold_E_dZ1 <- k_fold_E_dZ1[k_non_na,]
-    non_na_k_fold_subgroup_effect <- k_fold_subgroup_effect[k_non_na,]
-    non_na_k_fold_subgroup_effect_dZ0 <- k_fold_subgroup_effect_dZ0[k_non_na,]
-    non_na_k_fold_treatment_effect <- k_fold_treatment_effect[k_non_na,]
-    non_na_k_fold_compare_subgroup_effect <- k_fold_compare_subgroup_effect[k_non_na,]
-    
-    # get number of non-NA folds + observations in them
-    k_folds_non_na <- length(k_non_na)
-    num_obs <- nrow(k_fold_decisions[k_fold_decisions$k %in% k_non_na,])
+    num_obs <- length(d_pred) 
     
     aggregated_results <- data.frame(
       threshold = t,
-      aiptw_EY_Ad_dZ1 = mean(non_na_k_fold_EY_Ad_dZ1$aiptw),
-      se_aiptw_EY_Ad_dZ1 = sqrt((sum(non_na_k_fold_EY_Ad_dZ1$var_aug) / k_folds_non_na) / num_obs),
-      plug_in_est_EY_Ad_dZ1 = mean(non_na_k_fold_EY_Ad_dZ1$plug_in_est),
-      mean_aug_EY_Ad_dZ1 = mean(non_na_k_fold_EY_Ad_dZ1$mean_aug),
-      aiptw_EY_A0_dZ1 = mean(non_na_k_fold_EY_A0_dZ1$aiptw),
-      se_aiptw_EY_A0_dZ1 = sqrt((sum(non_na_k_fold_EY_A0_dZ1$var_aug) / k_folds_non_na) / num_obs),
-      plug_in_est_EY_A0_dZ1 = mean(non_na_k_fold_EY_A0_dZ1$plug_in_est),
-      mean_aug_EY_A0_dZ1 = mean(non_na_k_fold_EY_A0_dZ1$mean_aug),
-      E_dZ1 = mean(non_na_k_fold_E_dZ1$E_dZ1),
-      se_E_dZ1 = sqrt((sum(non_na_k_fold_E_dZ1$var_E_dZ1) / k_folds_non_na) / num_obs),
-      subgroup_effect = mean(non_na_k_fold_subgroup_effect$subgroup_effect),
-      se_subgroup_effect = sqrt((sum(non_na_k_fold_subgroup_effect$var_subgroup_effect) / k_folds_non_na) / num_obs),
-      subgroup_effect_dZ0 = mean(non_na_k_fold_subgroup_effect_dZ0$subgroup_effect_dZ0),
-      se_subgroup_effect_dZ0 = sqrt((sum(non_na_k_fold_subgroup_effect_dZ0$var_subgroup_effect_dZ0) / k_folds_non_na) / num_obs),
-      treatment_effect = mean(non_na_k_fold_treatment_effect$treatment_effect),
-      se_treatment_effect = sqrt((sum(non_na_k_fold_treatment_effect$var_treatment_effect) / k_folds_non_na) / num_obs),
-      compare_subgroup_effect = mean(non_na_k_fold_compare_subgroup_effect$compare_subgroup_effect),
-      se_compare_subgroup_effect = sqrt((sum(non_na_k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds_non_na) / num_obs)
+      aiptw_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$aiptw),
+      se_aiptw_EY_Ad_dZ1 = sqrt((sum(k_fold_EY_Ad_dZ1$var_aug) / k_folds) / num_obs),
+      plug_in_est_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$plug_in_est),
+      mean_aug_EY_Ad_dZ1 = mean(k_fold_EY_Ad_dZ1$mean_aug),
+      aiptw_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$aiptw),
+      se_aiptw_EY_A0_dZ1 = sqrt((sum(k_fold_EY_A0_dZ1$var_aug) / k_folds) / num_obs),
+      plug_in_est_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$plug_in_est),
+      mean_aug_EY_A0_dZ1 = mean(k_fold_EY_A0_dZ1$mean_aug),
+      E_dZ1 = mean(k_fold_E_dZ1$E_dZ1),
+      se_E_dZ1 = sqrt((sum(k_fold_E_dZ1$var_E_dZ1) / k_folds) / num_obs),
+      subgroup_effect = mean(k_fold_subgroup_effect$subgroup_effect),
+      se_subgroup_effect = sqrt((sum(k_fold_subgroup_effect$var_subgroup_effect) / k_folds) / num_obs),
+      subgroup_effect_dZ0 = mean(k_fold_subgroup_effect_dZ0$subgroup_effect_dZ0),
+      se_subgroup_effect_dZ0 = sqrt((sum(k_fold_subgroup_effect_dZ0$var_subgroup_effect_dZ0) / k_folds) / num_obs),
+      treatment_effect = mean(k_fold_treatment_effect$treatment_effect),
+      se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect) / k_folds) / num_obs),
+      compare_subgroup_effect = mean(k_fold_compare_subgroup_effect$compare_subgroup_effect),
+      se_compare_subgroup_effect = sqrt((sum(k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds) / num_obs)
     )
     
     k_fold_results <- list(
@@ -314,14 +299,13 @@ compute_estimates_external <- function(df,
     )
     
     
-    # STOPPED HERE -- NEED TO MAKE DECISION DF, FORMAT RETURN STUFF
-    
+    decision_df <- cbind(CATE_preds, data.frame(d_pred = d_pred))
     
     threshold_results <- list(
       aggregated_results = aggregated_results,
       k_fold_results = k_fold_results,
       decision_df = decision_df,
-      k_non_na = k_non_na
+      k_non_na = k_folds
     )
     
     class(threshold_results) <- "Results"
@@ -329,6 +313,10 @@ compute_estimates_external <- function(df,
     results_list_threshold[[t_idx]] <- threshold_results
     
   }
+  
+  threshold_names <- paste("threshold = ", threshold)
+  names(results_list_threshold) <- threshold_names
+  return(results_list_threshold)
   
 }
 
@@ -355,11 +343,9 @@ aiptw_tes <- function(df,
                       nuisance_models,
                       ps_trunc_level){
   
-  # Use input nuisance models
-  # TODO fix [[1]]
-  outcome_model <- nuisance_models[[1]]$outcome_model
-  treatment_model <- nuisance_models[[1]]$treatment_model
-  missingness_model <- nuisance_models[[1]]$missingness_model
+  outcome_model <- nuisance_models$outcome_model
+  treatment_model <- nuisance_models$treatment_model
+  missingness_model <- nuisance_models$missingness_model
   
   # Full set of observations
   I_Y <- ifelse(is.na(df[[Y_name]]), 1, 0) #indicator for Y missing
