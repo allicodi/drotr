@@ -33,7 +33,7 @@ aiptw_tes(
 \item{ps_trunc_level}{numeric evel below which propensity scores will be truncated (to avoid errors in computing AIPTW)}
 }
 \value{
-tbd
+list of effect estimates, influence function matrix
 }
 \description{
 Function to estimate treatment effects using AIPTW for external data

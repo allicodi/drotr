@@ -157,7 +157,13 @@ predict_CATE_external <- function(df, CATE_models, Z_list, truncate_CATE = TRUE)
 #' 
 #' @export
 #' 
-#' @returns tbd
+#' @returns \describe{
+#' List of "Results" objects for each threshold. Each results object contains:
+#' \item{\code{aggregated_results}}{Results averaged over each nuisance model}
+#' \item{\code{k_fold_results}}{Results for each nuisance model}
+#' \item{\code{decision_df}}{Dataframe with CATE prediction from every individual CATE_model, flag for CATE truncation, average CATE predition used for treatment decision, treatment decision}
+#' \item{\code{k_non_na}}{equal to number of k_folds used for nuisance models. Ignore-- placeholder to keep same format as Results object from internal compute estimates}
+#' }
 compute_estimates_external <- function(df, 
                                        Y_name, 
                                        A_name, 
@@ -333,7 +339,7 @@ compute_estimates_external <- function(df,
 #' 
 #' @export
 #' 
-#' @returns tbd
+#' @returns list of effect estimates, influence function matrix
 aiptw_tes <- function(df, 
                       d_pred, 
                       Y_name, 

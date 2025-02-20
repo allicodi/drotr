@@ -42,7 +42,13 @@ compute_estimates_external(
 \item{te_method}{method for estimating treatment effects, default aiptw}
 }
 \value{
-tbd
+\describe{
+List of "Results" objects for each threshold. Each results object contains:
+\item{\code{aggregated_results}}{Results averaged over each nuisance model}
+\item{\code{k_fold_results}}{Results for each nuisance model}
+\item{\code{decision_df}}{Dataframe with CATE prediction from every individual CATE_model, flag for CATE truncation, average CATE predition used for treatment decision, treatment decision}
+\item{\code{k_non_na}}{equal to number of k_folds used for nuisance models. Ignore-- placeholder to keep same format as Results object from internal compute estimates}
+}
 }
 \description{
 Function to compute estimates on external dataset
