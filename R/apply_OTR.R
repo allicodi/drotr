@@ -6,15 +6,13 @@
 #' @param A_name name of treatment variable. Treatment variable in rule being applied should be the same as the treatment variable in the new data. 
 #' @param W_list character vector containing names of covariates in the dataframe used for nuisance models. 
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))
-#' @param id_name name of participant ID variable
+#' @param id_name name of participant ID variable if present in data
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
-#' @param k_fold_assign_and_CATE dataframe containing ids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)
-#' @param validRows list containing validRows assignents for nuisance models using all observations (only include if using pre-fit nuisance models)
-#' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models
-#' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models
-#' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models
+#' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models (if fitting nuisance internally)
+#' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models  (if fitting nuisance internally)
+#' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models  (if fitting nuisance internally)
 #' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
-#' @param k_folds integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here. Otherwise uses k from `k_fold_assign_and_CATE`)
+#' @param k_folds integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here)
 #' @param ps_trunc_level numeric level below which propensity scores will be truncated (to avoid errors in computing AIPTW)
 #' @param outcome_type outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)
 #' @param truncate_CATE logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)
@@ -36,7 +34,6 @@ apply_OTR <- function(df,
                        Z_list,
                        id_name = NULL,
                        threshold = c("0.05"),
-                       te_method = "aiptw",
                        nuisance_models = NULL,
                        sl.library.outcome = NULL,
                        sl.library.treatment = NULL,

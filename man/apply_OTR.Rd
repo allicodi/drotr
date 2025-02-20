@@ -13,7 +13,6 @@ apply_OTR(
   Z_list,
   id_name = NULL,
   threshold = c("0.05"),
-  te_method = "aiptw",
   nuisance_models = NULL,
   sl.library.outcome = NULL,
   sl.library.treatment = NULL,
@@ -37,29 +36,25 @@ apply_OTR(
 
 \item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))}
 
-\item{id_name}{name of participant ID variable}
+\item{id_name}{name of participant ID variable if present in data}
 
 \item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
 \item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)}
 
-\item{sl.library.outcome}{character vector of SuperLearner libraries to use to fit the outcome models}
+\item{sl.library.outcome}{character vector of SuperLearner libraries to use to fit the outcome models (if fitting nuisance internally)}
 
-\item{sl.library.treatment}{character vector of SuperLearner libraries to use to fit the treatment models}
+\item{sl.library.treatment}{character vector of SuperLearner libraries to use to fit the treatment models  (if fitting nuisance internally)}
 
-\item{sl.library.missingness}{character vector of SuperLearner libraries to use to fit the missingness models}
+\item{sl.library.missingness}{character vector of SuperLearner libraries to use to fit the missingness models  (if fitting nuisance internally)}
 
-\item{k_folds}{integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here. Otherwise uses k from `k_fold_assign_and_CATE`)}
+\item{k_folds}{integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here)}
 
 \item{ps_trunc_level}{numeric level below which propensity scores will be truncated (to avoid errors in computing AIPTW)}
 
 \item{outcome_type}{outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)}
 
 \item{truncate_CATE}{logical to indicate if large CATE predictions should be truncated at -1 and 1 (default = TRUE)}
-
-\item{k_fold_assign_and_CATE}{dataframe containing ids, fold assignments, and CATE estimate for each observation in df (only include if using pre-fit nuisance models)}
-
-\item{validRows}{list containing validRows assignents for nuisance models using all observations (only include if using pre-fit nuisance models)}
 }
 \value{
 \describe{
