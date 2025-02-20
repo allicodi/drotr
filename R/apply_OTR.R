@@ -2,9 +2,9 @@
 #' 
 #' @param df dataframe containing external dataset to apply rule(s) to; must contain Z_list variables that are same as pre-trained rule(s)
 #' @param CATE_models list of CATE model(s) to apply to external dataset
-#' @param Y_name name of outcome variable in df
-#' @param A_name name of treatment variable in df
-#' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
+#' @param Y_name name of outcome variable. Outcome variable in rule being applied should be the same as outcome variable in new data. 
+#' @param A_name name of treatment variable. Treatment variable in rule being applied should be the same as the treatment variable in the new data. 
+#' @param W_list character vector containing names of covariates in the dataframe used for nuisance models. 
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))
 #' @param id_name name of participant ID variable
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
@@ -129,15 +129,17 @@ predict_CATE_external <- function(df, CATE_models, Z_list, truncate_CATE = TRUE)
     return(data.frame(CATE_pred = CATE_pred, trunc_flag = trunc_flag))
   }, truncate_CATE = truncate_CATE)
   
-  avg_CATE <- rowMeans(data.frame(CATE_preds), na.rm = TRUE)
-  CATE_preds <- data.frame(id = df$id, data.frame(CATE_preds), avg_CATE = avg_CATE)
+  #avg_CATE <- rowMeans(data.frame(CATE_preds), na.rm = TRUE)
+  CATE_preds <- data.frame(id = df$id, data.frame(CATE_preds))
   
   # colnames id, model_x, trunc_flag_x
   colnames(CATE_preds) <- c("id", 
                             unlist(lapply(1:length(CATE_models), function(i) {
                               c(paste0("model_", i), paste0("trunc_flag_", i))
-                              })),
-                            "avg_CATE")
+                              })))
+  
+  model_cols <- grep("^model_", colnames(CATE_preds), value = TRUE)
+  CATE_preds$avg_CATE <- rowMeans(CATE_preds[, model_cols], na.rm = TRUE)
   
   return(CATE_preds)
 
@@ -194,11 +196,10 @@ compute_estimates_external <- function(df,
                                              outcome_type, 
                                              k_folds = k_folds, 
                                              ps_trunc_level)
+    
+    nuisance_models <- nuisance_output$nuisance_models
+    
   }
-  
-  nuisance_models <- nuisance_output$nuisance_models
-  k_fold_assign_and_CATE <- nuisance_output$k_fold_assign_and_CATE
-  validRows <- nuisance_output$validRows
   
   # List to hold results at each threshold
   results_list_threshold <- vector("list", length = length(threshold))

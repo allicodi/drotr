@@ -29,11 +29,11 @@ apply_OTR(
 
 \item{CATE_models}{list of CATE model(s) to apply to external dataset}
 
-\item{Y_name}{name of outcome variable in df}
+\item{Y_name}{name of outcome variable. Outcome variable in rule being applied should be the same as outcome variable in new data.}
 
-\item{A_name}{name of treatment variable in df}
+\item{A_name}{name of treatment variable. Treatment variable in rule being applied should be the same as the treatment variable in the new data.}
 
-\item{W_list}{character vector containing names of covariates in the dataframe to be used for fitting nuisance models}
+\item{W_list}{character vector containing names of covariates in the dataframe used for nuisance models.}
 
 \item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))}
 
