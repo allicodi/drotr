@@ -10,15 +10,16 @@ compute_estimates_external(
   A_name,
   W_list,
   Z_list,
-  CATE_preds,
-  threshold,
-  nuisance_models,
-  sl.library.outcome,
-  sl.library.treatment,
-  sl.library.missingness,
-  k_folds,
-  ps_trunc_level,
-  outcome_type,
+  CATE_preds = NULL,
+  d_pred = NULL,
+  threshold = 0,
+  nuisance_models = NULL,
+  sl.library.outcome = NULL,
+  sl.library.treatment = NULL,
+  sl.library.missingness = NULL,
+  k_folds = 5,
+  ps_trunc_level = 0.01,
+  outcome_type = "gaussian",
   id_name = NULL
 )
 }
@@ -35,11 +36,25 @@ compute_estimates_external(
 
 \item{CATE_preds}{dataframe with CATE predictions for each CATE model & truncation flags for extreme predictions}
 
+\item{d_pred}{vector of binary treatment decisions (if have existing decisions and just want to estimate effects)}
+
 \item{threshold}{character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.}
 
-\item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models}
+\item{nuisance_models}{list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)}
 
-\item{te_method}{method for estimating treatment effects, default aiptw}
+\item{sl.library.outcome}{character vector of SuperLearner libraries to use to fit the outcome models (if fitting nuisance internally)}
+
+\item{sl.library.treatment}{character vector of SuperLearner libraries to use to fit the treatment models  (if fitting nuisance internally)}
+
+\item{sl.library.missingness}{character vector of SuperLearner libraries to use to fit the missingness models  (if fitting nuisance internally)}
+
+\item{k_folds}{integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here)}
+
+\item{ps_trunc_level}{numeric level below which propensity scores will be truncated (to avoid errors in computing AIPTW)}
+
+\item{outcome_type}{outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)}
+
+\item{id_name}{name of participant ID variable if present in data}
 }
 \value{
 \describe{

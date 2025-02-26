@@ -1,11 +1,12 @@
 #' Function to apply existing OTR(s) to external data
 #' 
 #' @param df dataframe containing external dataset to apply rule(s) to; must contain Z_list variables that are same as pre-trained rule(s)
-#' @param CATE_models list of CATE model(s) to apply to external dataset
+#' @param CATE_models list of CATE model(s) to apply to external dataset (if applying existing rule to new data)
+#' @param d_pred vector of binary treatment decisions (if have existing decisions and just want to estimate effects)
 #' @param Y_name name of outcome variable. Outcome variable in rule being applied should be the same as outcome variable in new data. 
 #' @param A_name name of treatment variable. Treatment variable in rule being applied should be the same as the treatment variable in the new data. 
 #' @param W_list character vector containing names of covariates in the dataframe used for nuisance models. 
-#' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))
+#' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s); only required if applying rule)
 #' @param id_name name of participant ID variable if present in data
 #' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
 #' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models (if fitting nuisance internally)
@@ -27,11 +28,12 @@
 #'  \item{\code{Z_list}}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule)}
 #'  }
 apply_OTR <- function(df,
-                       CATE_models,
+                       CATE_models = NULL,
+                       d_pred = NULL,
                        Y_name,
                        A_name,
                        W_list,
-                       Z_list,
+                       Z_list = NULL,
                        id_name = NULL,
                        threshold = c("0.05"),
                        nuisance_models = NULL,
@@ -57,34 +59,44 @@ apply_OTR <- function(df,
   # --------------------------------------------------------------------------
   # 1 - Predict from each CATE model on full dataset
   # --------------------------------------------------------------------------
-  CATE_preds <- drotr::predict_CATE_external(df, CATE_models, Z_list, truncate_CATE)
+  if(is.null(d_pred)){
+    CATE_preds <- drotr::predict_CATE_external(df, CATE_models, Z_list, truncate_CATE)
+  } else{
+    CATE_preds <- NULL
+  }
   
   # --------------------------------------------------------------------------
   # 2 - Make treatment decisions and compute treatment effects
   # --------------------------------------------------------------------------
-  results <- drotr::compute_estimates_external(df, 
-                                               Y_name, 
-                                               A_name, 
-                                               W_list, 
-                                               Z_list, 
-                                               CATE_preds, 
-                                               threshold,
-                                               nuisance_models,
-                                               sl.library.outcome,
-                                               sl.library.treatment,
-                                               sl.library.missingness,
-                                               k_folds,
-                                               ps_trunc_level,
-                                               outcome_type, 
-                                               id_name)
+  results <- drotr::compute_estimates_external(df = df, 
+                                               Y_name = Y_name, 
+                                               A_name = A_name, 
+                                               W_list = W_list, 
+                                               Z_list = Z_list, 
+                                               CATE_preds = CATE_preds,
+                                               d_pred = d_pred,
+                                               threshold = threshold,
+                                               nuisance_models = nuisance_models,
+                                               sl.library.outcome = sl.library.outcome,
+                                               sl.library.treatment = sl.library.treatment,
+                                               sl.library.missingness = sl.library.missingness,
+                                               k_folds = k_folds,
+                                               ps_trunc_level = ps_trunc_level,
+                                               outcome_type = outcome_type, 
+                                               id_name = id_name)
   
   results <- list(results)
   names(results) <- "results"
   
   results$nuisance_models <- nuisance_models
   results$CATE_models <- CATE_models
-  results$Z_list <- Z_list
-  results$results$Z_list <- Z_list # adding in two places so full object print or just results subsection prints (so could opt to save partial results)
+  if(!is.null(CATE_models)){
+    results$Z_list <- Z_list
+    results$results$Z_list <- Z_list # adding in two places so full object print or just results subsection prints (so could opt to save partial results)
+  } else{
+    results$Z_list <- NULL
+    results$results$Z_list <- NULL
+  }
   
   class(results$results) <- "otr_results"
   class(results) <- "full_otr_results"
@@ -145,14 +157,21 @@ predict_CATE_external <- function(df, CATE_models, Z_list, truncate_CATE = TRUE)
 #' Function to compute estimates on external dataset
 #' 
 #' @param df dataframe containing external dataset to apply rule(s) to; must contain Z_list variables that are same as pre-trained rule(s)
-#' @param CATE_preds dataframe with CATE predictions for each CATE model & truncation flags for extreme predictions
 #' @param Y_name name of outcome variable in df
 #' @param A_name name of treatment variable in df
 #' @param W_list character vector containing names of covariates in the dataframe to be used for fitting nuisance models
 #' @param Z_list character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))
+#' @param CATE_preds dataframe with CATE predictions for each CATE model & truncation flags for extreme predictions
+#' @param d_pred vector of binary treatment decisions (if have existing decisions and just want to estimate effects)
 #' @param threshold character vector of decision thresholds for CATE to determine OTR. Values should be positive if `Y_name` is desirable outcome, negative if `Y_name` is undesirable outcome. If threshold is 0, use +0 for desirable, -0 for undesirable.
-#' @param te_method method for estimating treatment effects, default aiptw
-#' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models 
+#' @param nuisance_models list of objects of class `Nuisance` containing outcome, treatment, and missingness SuperLearner models (only include if using pre-fit nuisance models)
+#' @param sl.library.outcome character vector of SuperLearner libraries to use to fit the outcome models (if fitting nuisance internally)
+#' @param sl.library.treatment character vector of SuperLearner libraries to use to fit the treatment models  (if fitting nuisance internally)
+#' @param sl.library.missingness character vector of SuperLearner libraries to use to fit the missingness models  (if fitting nuisance internally)
+#' @param k_folds integer number of folds to use for nuisance model cross-validation (must specify if fitting nuisance models here)
+#' @param ps_trunc_level numeric level below which propensity scores will be truncated (to avoid errors in computing AIPTW)
+#' @param outcome_type outcome_type specifying continuous (outcome_type = "gaussian") or binary (outcome_type = "binomial") outcome Y (if not providing pre-fit nuisance models)
+#' @param id_name name of participant ID variable if present in data
 #' 
 #' @export
 #' 
@@ -168,15 +187,16 @@ compute_estimates_external <- function(df,
                                        A_name, 
                                        W_list, 
                                        Z_list, 
-                                       CATE_preds, 
-                                       threshold, 
-                                       nuisance_models,
-                                       sl.library.outcome,
-                                       sl.library.treatment,
-                                       sl.library.missingness,
-                                       k_folds,
-                                       ps_trunc_level,
-                                       outcome_type, 
+                                       CATE_preds = NULL, 
+                                       d_pred = NULL,
+                                       threshold = 0, 
+                                       nuisance_models = NULL,
+                                       sl.library.outcome = NULL,
+                                       sl.library.treatment = NULL,
+                                       sl.library.missingness = NULL,
+                                       k_folds = 5,
+                                       ps_trunc_level = 0.01,
+                                       outcome_type = "gaussian", 
                                        id_name = NULL){
   
   # Fit nuisance or other model for pseudo-outcome if not pre-fit
@@ -213,11 +233,14 @@ compute_estimates_external <- function(df,
     
     t <- as.numeric(t)
     
-    # Get treatment decision for avg_CATE
-    if(sign == "-"){
-      d_pred <- ifelse(CATE_preds$avg_CATE < threshold, 1, 0)
-    } else {
-      d_pred <- ifelse(CATE_preds$avg_CATE > threshold, 1, 0)
+    # If d_pred not passed in (could pass in treatment decisions to get effects for given assignment)
+    if(is.null(d_pred)){
+      # Get treatment decision for avg_CATE
+      if(sign == "-"){
+        d_pred <- ifelse(CATE_preds$avg_CATE < threshold, 1, 0)
+      } else {
+        d_pred <- ifelse(CATE_preds$avg_CATE > threshold, 1, 0)
+      }
     }
   
     # Get treatment decisions & effect estimates for given nuisance model
@@ -302,8 +325,11 @@ compute_estimates_external <- function(df,
       influence_fns = k_fold_inf_fn_matrix
     )
     
-    
-    decision_df <- cbind(CATE_preds, data.frame(d_pred = d_pred))
+    if(!is.null(CATE_preds)){
+      decision_df <- cbind(CATE_preds, data.frame(d_pred = d_pred))
+    } else {
+      decision_df <- data.frame(d_pred = d_pred)
+    }
     
     threshold_results <- list(
       aggregated_results = aggregated_results,

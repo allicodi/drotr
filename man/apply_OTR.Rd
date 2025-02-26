@@ -6,11 +6,12 @@
 \usage{
 apply_OTR(
   df,
-  CATE_models,
+  CATE_models = NULL,
+  d_pred = NULL,
   Y_name,
   A_name,
   W_list,
-  Z_list,
+  Z_list = NULL,
   id_name = NULL,
   threshold = c("0.05"),
   nuisance_models = NULL,
@@ -26,7 +27,9 @@ apply_OTR(
 \arguments{
 \item{df}{dataframe containing external dataset to apply rule(s) to; must contain Z_list variables that are same as pre-trained rule(s)}
 
-\item{CATE_models}{list of CATE model(s) to apply to external dataset}
+\item{CATE_models}{list of CATE model(s) to apply to external dataset (if applying existing rule to new data)}
+
+\item{d_pred}{vector of binary treatment decisions (if have existing decisions and just want to estimate effects)}
 
 \item{Y_name}{name of outcome variable. Outcome variable in rule being applied should be the same as outcome variable in new data.}
 
@@ -34,7 +37,7 @@ apply_OTR(
 
 \item{W_list}{character vector containing names of covariates in the dataframe used for nuisance models.}
 
-\item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s))}
+\item{Z_list}{character vector containing names of variables in df used to fit CATE model (variables used in treatment rule; must be same names as used in pre-fit CATE model(s); only required if applying rule)}
 
 \item{id_name}{name of participant ID variable if present in data}
 
