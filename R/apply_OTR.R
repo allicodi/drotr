@@ -242,9 +242,9 @@ compute_estimates_external <- function(df,
     if(is.null(d_pred)){
       # Get treatment decision for avg_CATE
       if(sign == "-"){
-        d_pred <- ifelse(CATE_preds$avg_CATE < threshold, 1, 0)
+        d_pred <- ifelse(CATE_preds$avg_CATE < t, 1, 0)
       } else {
-        d_pred <- ifelse(CATE_preds$avg_CATE > threshold, 1, 0)
+        d_pred <- ifelse(CATE_preds$avg_CATE > t, 1, 0)
       }
     }
   
