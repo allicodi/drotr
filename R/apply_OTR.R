@@ -68,7 +68,7 @@ apply_OTR <- function(df,
   # --------------------------------------------------------------------------
   # 2 - Make treatment decisions and compute treatment effects
   # --------------------------------------------------------------------------
-  results <- drotr::compute_estimates_external(df = df, 
+  results_external <- drotr::compute_estimates_external(df = df, 
                                                Y_name = Y_name, 
                                                A_name = A_name, 
                                                W_list = W_list, 
@@ -85,10 +85,15 @@ apply_OTR <- function(df,
                                                outcome_type = outcome_type, 
                                                id_name = id_name)
   
-  results <- list(results)
+  results <- list(results_external$results_list_threshold)
   names(results) <- "results"
   
-  results$nuisance_models <- nuisance_models
+  if(is.null(nuisance_models)){
+    results$nuisance_models <- results_external$nuisance_models
+  } else{
+    results$nuisance_models <- results
+  }
+  
   results$CATE_models <- CATE_models
   if(!is.null(CATE_models)){
     results$Z_list <- Z_list
@@ -346,7 +351,8 @@ compute_estimates_external <- function(df,
   
   threshold_names <- paste("threshold = ", threshold)
   names(results_list_threshold) <- threshold_names
-  return(results_list_threshold)
+  return(list(results_list_threshold = results_list_threshold, 
+              nuisance_models = nuisance_models))
   
 }
 
