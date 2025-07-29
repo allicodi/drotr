@@ -486,6 +486,9 @@ aiptw_tes <- function(df,
   cov_matrix <- stats::cov(inf_fn_matrix)
   #var_mean_dZ <- as.numeric(stats::var(augmentation_mean_dZ)) should be the same as cov_matrix[3,3]
   
+  # FIX FOR TREATMENT RULE ASSIGNING 1 TO EVERYONE
+  cov_matrix[is.na(cov_matrix)] <- 0
+  
   # Effect in optimally treated subgroup
   gradient_g_subgroup <- matrix(c(
     1, -1, 0, 0, 0, 0
