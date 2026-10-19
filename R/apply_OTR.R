@@ -258,6 +258,9 @@ compute_estimates_external <- function(df,
     k_fold_inf_fn_matrix <- vector("list", length = k_folds )
     k_fold_subgroup_effect_dZ0 <- vector("list", length = k_folds )
     k_fold_compare_subgroup_effect <- vector("list", length = k_folds )
+    k_fold_E_Yd <- vector("list", length = k_folds )
+    k_fold_E_Y <- vector("list", length = k_folds )
+    k_fold_E_Yd_Y <- vector("list", length = k_folds)
     
     for(k in 1:k_folds){
       
@@ -280,6 +283,9 @@ compute_estimates_external <- function(df,
       k_fold_treatment_effect[[k]] <- compute_est_output$treatment_effect
       k_fold_subgroup_effect_dZ0[[k]] <- compute_est_output$subgroup_effect_dZ0
       k_fold_compare_subgroup_effect[[k]] <- compute_est_output$compare_subgroup_effect
+      k_fold_E_Yd[[k]] <- compute_est_output$E_Yd
+      k_fold_E_Y[[k]] <- compute_est_output$E_Y
+      k_fold_E_Yd_Y[[k]] <- compute_est_output$E_Yd_Y
       k_fold_inf_fn_matrix[[k]] <- compute_est_output$inf_fn_matrix
       
     }
@@ -292,6 +298,9 @@ compute_estimates_external <- function(df,
     k_fold_subgroup_effect_dZ0 <- do.call(rbind, k_fold_subgroup_effect_dZ0)
     k_fold_treatment_effect <- do.call(rbind, k_fold_treatment_effect)
     k_fold_compare_subgroup_effect <- do.call(rbind, k_fold_compare_subgroup_effect)
+    k_fold_E_Yd <- do.call(rbind, k_fold_E_Yd)
+    k_fold_E_Y <- do.call(rbind, k_fold_E_Y)
+    k_fold_E_Yd_Y <- do.call(rbind, k_fold_E_Yd_Y)
     
     # note removed NA folds logic- should not apply when using avg CATE/external dataset
     
@@ -316,7 +325,13 @@ compute_estimates_external <- function(df,
       treatment_effect = mean(k_fold_treatment_effect$treatment_effect),
       se_treatment_effect = sqrt((sum(k_fold_treatment_effect$var_treatment_effect) / k_folds) / num_obs),
       compare_subgroup_effect = mean(k_fold_compare_subgroup_effect$compare_subgroup_effect),
-      se_compare_subgroup_effect = sqrt((sum(k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds) / num_obs)
+      se_compare_subgroup_effect = sqrt((sum(k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds) / num_obs),
+      E_Yd = mean(k_fold_E_Yd$E_Yd),
+      se_E_Yd = sqrt((sum(k_fold_E_Yd$var_E_Yd) / k_folds) / num_obs),
+      E_Y = mean(k_fold_E_Y$E_Y),
+      se_E_Y = sqrt((sum(k_fold_E_Y$var_E_Y) / k_folds) / num_obs),
+      E_Yd_Y = mean(k_fold_E_Yd_Y$E_Yd_Y),
+      se_E_Yd_Y = sqrt((sum(k_fold_E_Yd_Y$var_E_Yd_Y) / k_folds) / num_obs)
     )
     
     k_fold_results <- list(
@@ -327,6 +342,9 @@ compute_estimates_external <- function(df,
       k_fold_subgroup_effect_dZ0 = k_fold_subgroup_effect_dZ0,
       k_fold_treatment_effect = k_fold_treatment_effect,
       k_fold_compare_subgroup_effect = k_fold_compare_subgroup_effect,
+      k_fold_E_Yd = k_fold_E_Yd,
+      k_fold_E_Y = k_fold_E_Y,
+      k_fold_E_Yd_Y = k_fold_E_Yd_Y,
       influence_fns = k_fold_inf_fn_matrix
     )
     
@@ -460,6 +478,14 @@ aiptw_tes <- function(df,
                               ps_trunc_level = ps_trunc_level,
                               idx_sub = idx_sub0)
   
+  # E[Y(d)]
+  E_Yd <- aiptw_a_1[['aiptw']] * mean_dZ + aiptw_a_0[['aiptw']] * (1 - mean_dZ)
+  
+  # E[Y] (not directly observed bc missingness)
+  E_Y_aiptw <- calc_aiptw_E_Y(A, A_name, W, Y, I_Y, outcome_model, missingness_model)
+  E_Y <- E_Y_aiptw[['aiptw']]
+  var_E_Y <- stats::var(E_Y_aiptw[['augmentation']])
+   
   # E[Y(d) - Y(0)] = E[Y(d) | d(Z) = 1]*P(d(Z) = 1) - E[Y(0) | d(Z) = 1 ]*P(d(Z) = 1)
   treatment_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]) * mean_dZ
   
@@ -517,12 +543,26 @@ aiptw_tes <- function(df,
   
   var_treatment_effect <- t(gradient_g) %*% cov_matrix %*% gradient_g
   
+  # Effect E_Yd
+  gradient_E_Yd <- matrix(c(
+    mean_dZ, 1 - mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']], 0, 0, 0
+  ) , ncol = 1)
+  
+  var_E_Yd <- t(gradient_E_Yd) %*% cov_matrix %*% gradient_E_Yd
+  
   # add columns for the influence functions of subgroup_effect and treatment_effect
   inf_fn_subgroup_effect <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup)
   inf_fn_subgroup_effect_dZ0 <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup_dZ0)
   inf_fn_compare_subgroup <- as.numeric(inf_fn_matrix %*% gradient_compare_subgroup)
   inf_fn_treatment_effect <- as.numeric(inf_fn_matrix %*% gradient_g)
-  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect)
+  inf_fn_E_Yd <- as.numeric(inf_fn_matrix %*% gradient_E_Yd)
+  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect, inf_fn_E_Yd, E_Y_aiptw[['augmentation']])
+  
+  # E[Y(d) - Y] 
+  E_Yd_Y <- E_Yd - E_Y
+  gradient_E_Yd_Y <- matrix(c(0,0,0,0,0,0,0,0,0,1,-1), ncol = 1)
+  
+  var_E_Yd_Y <- t(gradient_E_Yd_Y) %*% cov(inf_fn_matrix) %*% gradient_E_Yd_Y
   
   return(list(EY_Ad_dZ1 = data.frame(aiptw = aiptw_a_1[['aiptw']], plug_in_est = aiptw_a_1[['plug_in_est']],
                                      mean_aug = mean(aiptw_a_1[['augmentation']]), var_aug = aiptw_a_1[['var_aug']]),
@@ -533,6 +573,9 @@ aiptw_tes <- function(df,
               treatment_effect = data.frame(treatment_effect = treatment_effect, var_treatment_effect = var_treatment_effect),
               subgroup_effect_dZ0 = data.frame(subgroup_effect_dZ0 = subgroup_effect_dZ0, var_subgroup_effect_dZ0 = var_subgroup_effect_dZ0),
               compare_subgroup_effect = data.frame(compare_subgroup_effect = compare_subgroup_effect, var_compare_subgroup_effect = var_compare_subgroup),
+              E_Yd = data.frame(E_Yd = E_Yd, var_E_Yd = var_E_Yd),
+              E_Y = data.frame(E_Y = E_Y, var_E_Y = var_E_Y),
+              E_Yd_Y = data.frame(E_Yd_Y = E_Yd_Y, var_E_Yd_Y = var_E_Yd_Y),
               inf_fn_matrix = inf_fn_matrix))# ,
               #df_decisions = df_decisions))
   
