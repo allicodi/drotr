@@ -7,7 +7,7 @@
 \method{print}{average_results}(x, ...)
 }
 \arguments{
-\item{x}{An \code{"otr_results"} or \code{"full_otr_results"} object.}
+\item{x}{An \code{"average_results"} object.}
 
 \item{...}{Other arguments (not used)}
 }
