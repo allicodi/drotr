@@ -1,7 +1,7 @@
 Package: drotr
 Type: Package
 Title: Doubly-robust methods for Optimal Treatment Rules
-Version: 0.1.0
+Version: 0.2.0
 Author: Allison Codi
 Maintainer: Allison Codi <allison.codi@emory.edu>
 Description: This package estimates Optimal Treatment Rules (OTRs) and treatment effects under those optimally treated by the rule using doubly-robust methods. 

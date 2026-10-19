@@ -11,3 +11,5 @@ drotr.Rproj
 wrappers.R
 inst/doc
 docs
+/doc/
+/Meta/
