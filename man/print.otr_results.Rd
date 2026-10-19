@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{print.otr_results}
 \alias{print.otr_results}
-\title{Print the output of a \code{"full_otr_results"} object.}
+\title{Print the output of an \code{"otr_results"} object.}
 \usage{
 \method{print}{otr_results}(x, ...)
 }
@@ -12,5 +12,5 @@
 \item{...}{Other arguments (not used)}
 }
 \description{
-Print the output of a \code{"full_otr_results"} object.
+Print the output of an \code{"otr_results"} object.
 }
