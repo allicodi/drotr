@@ -115,16 +115,25 @@ strip_nuisance <- function(nuisance_model){
 #' @method print full_otr_results
 #' @export
 print.full_otr_results <- function(x, ...){
-
+  
   res <- x$results
-
-  threshold_names <- grep("^threshold", names(res), value=TRUE)
-
+  
+  threshold_names <- grep("^threshold", names(res), value = TRUE)
+  
   for(t in 1:length(threshold_names)){
     threshold <- threshold_names[t]
-
+    
     sub <- res[[threshold]]
-
+    
+    # Backwards compatibility for older objects
+    new_fields <- c("E_Yd", "E_Y", "E_Yd_Y")
+    all_new_fields <- c(new_fields, paste0("se_", new_fields))
+    
+    missing_fields <- setdiff(all_new_fields, names(sub$aggregated_results))
+    
+    # Fill absent fields with NA so data.frame construction works
+    sub$aggregated_results[missing_fields] <- NA_real_
+    
     tmp <- data.frame(
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1,
@@ -133,7 +142,7 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect,
         sub$aggregated_results$compare_subgroup_effect,
-        sub$aggregated_results$E_Yd, 
+        sub$aggregated_results$E_Yd,
         sub$aggregated_results$E_Y,
         sub$aggregated_results$E_Yd_Y),
       c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
@@ -143,7 +152,7 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$se_treatment_effect,
         sub$aggregated_results$se_compare_subgroup_effect,
-        sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$se_E_Yd,
         sub$aggregated_results$se_E_Y,
         sub$aggregated_results$se_E_Yd_Y),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
@@ -153,9 +162,9 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
         sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect,
-        sub$aggregated_results$E_Yd - 1.96*sub$aggregated_results$se_E_Yd, 
-        sub$aggregated_results$E_Y - 1.96*sub$aggregated_results$se_E_Y, 
-        sub$aggregated_results$E_Yd_Y- 1.96*sub$aggregated_results$se_E_Yd_Y),
+        sub$aggregated_results$E_Yd - 1.96*sub$aggregated_results$se_E_Yd,
+        sub$aggregated_results$E_Y - 1.96*sub$aggregated_results$se_E_Y,
+        sub$aggregated_results$E_Yd_Y - 1.96*sub$aggregated_results$se_E_Yd_Y),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
@@ -163,114 +172,8 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
         sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect,
-        sub$aggregated_results$E_Yd + 1.96*sub$aggregated_results$se_E_Yd, 
-        sub$aggregated_results$E_Y + 1.96*sub$aggregated_results$se_E_Y, 
-        sub$aggregated_results$E_Yd_Y + 1.96*sub$aggregated_results$se_E_Yd_Y)
-    )
-
-    row_names <- c("E[Y(1) | d(Z) = 1]",
-                   "E[Y(0) | d(Z) = 1]",
-                   "E[d(Z) = 1]",
-                   "E[Y(1) - Y(0) | d(Z) = 1]",
-                   "E[Y(1) - Y(0) | d(Z) = 0]",
-                   "E[Y(d) - Y(0)]",
-                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]",
-                   "E[Y(d)]",
-                   "E[Y]",
-                   "E[Y(d) - Y]")
-
-    col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
-
-    rownames(tmp) <- row_names
-    colnames(tmp) <- col_names
-
-    # Print header with dashed line
-    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$k_non_na), " folds \n"))
-    cat(paste(rep("-", 135), collapse = ""), "\n")
-    cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
-    cat(paste(rep("-", 135), collapse = ""), "\n")
-
-    for(i in 1:nrow(tmp)){
-      row_to_print <- tmp[i, ]
-
-      # Adjust the widths as needed
-      formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
-                               row.names(row_to_print),
-                               round(row_to_print[1],4),
-                               round(row_to_print[2],4),
-                               round(row_to_print[3],4),
-                               round(row_to_print[4],4))
-
-      # Print the formatted row
-      cat(paste(formatted_row))
-    }
-
-    cat(paste("\nCovariates used in decision rule: ", paste(x$Z_list, collapse = ", "), "\n\n"))
-
-  }
-
-  invisible(tmp)
-
-}
-
-#' Print the output of a \code{"full_otr_results"} object.
-#'
-#' @param x An \code{"otr_results"} object.
-#' @param ... Other arguments (not used)
-#'
-#' @method print otr_results
-#' @export
-print.otr_results <- function(x, ...){
-
-  res <- x
-
-  threshold_names <- grep("^threshold", names(res), value=TRUE)
-
-  for(t in 1:length(threshold_names)){
-    threshold <- threshold_names[t]
-
-    sub <- res[[threshold]]
-
-    tmp <- data.frame(
-      c(sub$aggregated_results$aiptw_EY_Ad_dZ1,
-        sub$aggregated_results$aiptw_EY_A0_dZ1,
-        sub$aggregated_results$E_dZ1,
-        sub$aggregated_results$subgroup_effect,
-        sub$aggregated_results$subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect,
-        sub$aggregated_results$E_Yd, 
-        sub$aggregated_results$E_Y,
-        sub$aggregated_results$E_Yd_Y),
-      c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
-        sub$aggregated_results$se_aiptw_EY_A0_dZ1,
-        sub$aggregated_results$se_E_dZ1,
-        sub$aggregated_results$se_subgroup_effect,
-        sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$se_compare_subgroup_effect,
-        sub$aggregated_results$se_E_Yd, 
-        sub$aggregated_results$se_E_Y,
-        sub$aggregated_results$se_E_Yd_Y),
-      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
-        sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
-        sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
-        sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
-        sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect,
-        sub$aggregated_results$E_Yd - 1.96*sub$aggregated_results$se_E_Yd, 
-        sub$aggregated_results$E_Y - 1.96*sub$aggregated_results$se_E_Y, 
-        sub$aggregated_results$E_Yd_Y- 1.96*sub$aggregated_results$se_E_Yd_Y),
-      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
-        sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
-        sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
-        sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
-        sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
-        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect,
-        sub$aggregated_results$E_Yd + 1.96*sub$aggregated_results$se_E_Yd, 
-        sub$aggregated_results$E_Y + 1.96*sub$aggregated_results$se_E_Y, 
+        sub$aggregated_results$E_Yd + 1.96*sub$aggregated_results$se_E_Yd,
+        sub$aggregated_results$E_Y + 1.96*sub$aggregated_results$se_E_Y,
         sub$aggregated_results$E_Yd_Y + 1.96*sub$aggregated_results$se_E_Yd_Y)
     )
     
@@ -284,39 +187,182 @@ print.otr_results <- function(x, ...){
                    "E[Y(d)]",
                    "E[Y]",
                    "E[Y(d) - Y]")
-
+    
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
-
+    
     rownames(tmp) <- row_names
     colnames(tmp) <- col_names
-
+    
     # Print header with dashed line
-    cat(paste("                               Results for ", threshold, " Aggregated Across k = ", max(sub$k_non_na), " folds \n"))
+    cat(paste("                               Results for ", threshold,
+              " Aggregated Across k = ", max(sub$k_non_na), " folds \n"))
     cat(paste(rep("-", 135), collapse = ""), "\n")
-    cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+    cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n",
+                "", col_names[1], col_names[2], col_names[3], col_names[4]))
     cat(paste(rep("-", 135), collapse = ""), "\n")
-
+    
     for(i in 1:nrow(tmp)){
       row_to_print <- tmp[i, ]
-
-      # Adjust the widths as needed
+      
+      vals <- as.character(round(unlist(row_to_print, use.names = FALSE), 4))
+      
+      # Print "--" only for fields absent from older objects
+      if(i > 7){
+        field <- new_fields[i - 7]
+        
+        if(field %in% missing_fields){
+          vals[c(1, 3, 4)] <- "--"
+        }
+        
+        if(paste0("se_", field) %in% missing_fields){
+          vals[c(2, 3, 4)] <- "--"
+        }
+      }
+      
       formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
                                row.names(row_to_print),
-                               round(row_to_print[1],4),
-                               round(row_to_print[2],4),
-                               round(row_to_print[3],4),
-                               round(row_to_print[4],4))
-
-      # Print the formatted row
-      cat(paste(formatted_row))
+                               vals[1],
+                               vals[2],
+                               vals[3],
+                               vals[4])
+      
+      cat(formatted_row)
     }
-
-    cat(paste("\nCovariates used in decision rule: ", paste(x$Z_list, collapse = ", "), "\n\n"))
-
+    
+    cat(paste("\nCovariates used in decision rule: ",
+              paste(x$Z_list, collapse = ", "), "\n\n"))
   }
-
+  
   invisible(tmp)
+}
 
+#' Print the output of an \code{"otr_results"} object.
+#'
+#' @param x An \code{"otr_results"} object.
+#' @param ... Other arguments (not used)
+#'
+#' @method print otr_results
+#' @export
+print.otr_results <- function(x, ...){
+  
+  res <- x
+  
+  threshold_names <- grep("^threshold", names(res), value = TRUE)
+  
+  for(t in 1:length(threshold_names)){
+    threshold <- threshold_names[t]
+    
+    sub <- res[[threshold]]
+    
+    # Backwards compatibility for older objects
+    new_fields <- c("E_Yd", "E_Y", "E_Yd_Y")
+    all_new_fields <- c(new_fields, paste0("se_", new_fields))
+    
+    missing_fields <- setdiff(all_new_fields, names(sub$aggregated_results))
+    
+    # Fill absent fields with NA so data.frame construction works
+    sub$aggregated_results[missing_fields] <- NA_real_
+    
+    tmp <- data.frame(
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1,
+        sub$aggregated_results$subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0,
+        sub$aggregated_results$treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect,
+        sub$aggregated_results$E_Yd,
+        sub$aggregated_results$E_Y,
+        sub$aggregated_results$E_Yd_Y),
+      c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$se_subgroup_effect_dZ0,
+        sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$se_E_Yd,
+        sub$aggregated_results$se_E_Y,
+        sub$aggregated_results$se_E_Yd_Y),
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
+        sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$E_Yd - 1.96*sub$aggregated_results$se_E_Yd,
+        sub$aggregated_results$E_Y - 1.96*sub$aggregated_results$se_E_Y,
+        sub$aggregated_results$E_Yd_Y - 1.96*sub$aggregated_results$se_E_Yd_Y),
+      c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
+        sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
+        sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
+        sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
+        sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
+        sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
+        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$E_Yd + 1.96*sub$aggregated_results$se_E_Yd,
+        sub$aggregated_results$E_Y + 1.96*sub$aggregated_results$se_E_Y,
+        sub$aggregated_results$E_Yd_Y + 1.96*sub$aggregated_results$se_E_Yd_Y)
+    )
+    
+    row_names <- c("E[Y(1) | d(Z) = 1]",
+                   "E[Y(0) | d(Z) = 1]",
+                   "E[d(Z) = 1]",
+                   "E[Y(1) - Y(0) | d(Z) = 1]",
+                   "E[Y(1) - Y(0) | d(Z) = 0]",
+                   "E[Y(d) - Y(0)]",
+                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]",
+                   "E[Y(d)]",
+                   "E[Y]",
+                   "E[Y(d) - Y]")
+    
+    col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
+    
+    rownames(tmp) <- row_names
+    colnames(tmp) <- col_names
+    
+    # Print header with dashed line
+    cat(paste("                               Results for ", threshold,
+              " Aggregated Across k = ", max(sub$k_non_na), " folds \n"))
+    cat(paste(rep("-", 135), collapse = ""), "\n")
+    cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n",
+                "", col_names[1], col_names[2], col_names[3], col_names[4]))
+    cat(paste(rep("-", 135), collapse = ""), "\n")
+    
+    for(i in 1:nrow(tmp)){
+      row_to_print <- tmp[i, ]
+      
+      vals <- as.character(round(unlist(row_to_print, use.names = FALSE), 4))
+      
+      # Print "--" only for fields absent from older objects
+      if(i > 7){
+        field <- new_fields[i - 7]
+        
+        if(field %in% missing_fields){
+          vals[c(1, 3, 4)] <- "--"
+        }
+        
+        if(paste0("se_", field) %in% missing_fields){
+          vals[c(2, 3, 4)] <- "--"
+        }
+      }
+      
+      formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
+                               row.names(row_to_print),
+                               vals[1],
+                               vals[2],
+                               vals[3],
+                               vals[4])
+      
+      cat(formatted_row)
+    }
+    
+    cat(paste("\nCovariates used in decision rule: ",
+              paste(x$Z_list, collapse = ", "), "\n\n"))
+  }
+  
+  invisible(tmp)
 }
 
 #' Compare outcomes under different treatment rules
@@ -497,31 +543,40 @@ print.otr_comparison <- function(x, ...){
 #' @export
 #'
 average_across_seeds <- function(results_list, threshold){
-
+  
   # get name of threshold to use for comparison
   t_name <- paste("threshold = ", threshold)
   n <- length(results_list)
   combined_res <- data.frame()
+  
   for(seed in 1:n){
     if(class(results_list[[seed]]) == "full_otr_results"){
       seed_res <- results_list[[seed]]$results[[t_name]]$aggregated_results
       if(is.null(seed_res)) stop(print(paste0("results_list item ", seed, " at threshold ", threshold, "not found")))
       Z_list <- results_list[[seed]]$results$Z_list
-
+      
     } else if(class(results_list[[seed]]) == "otr_results"){
       seed_res <- results_list[[seed]][[t_name]]$aggregated_results
       if(is.null(seed_res)) stop(print(paste0("results_list item ", seed, " at threshold ", threshold, "not found")))
       Z_list <- results_list[[seed]]$Z_list
-
+      
     } else {
       stop(print(paste0("results_list item ", seed, " not full_otr_results or otr_results object")))
     }
-
+    
     # add results for given seed to dataframe
     combined_res <- rbind(combined_res, seed_res)
-
   }
-
+  
+  # Backwards compatibility for older objects
+  new_fields <- c("E_Yd", "E_Y", "E_Yd_Y")
+  all_new_fields <- c(new_fields, paste0("se_", new_fields))
+  
+  missing_fields <- setdiff(all_new_fields, names(combined_res))
+  
+  # Fill absent fields with NA for calculations
+  combined_res[missing_fields] <- NA_real_
+  
   # average results across seeds
   average_results <- data.frame(
     EY_Ad_dZ1 = mean(combined_res$aiptw_EY_Ad_dZ1),
@@ -545,7 +600,7 @@ average_across_seeds <- function(results_list, threshold){
     E_Yd_Y = mean(combined_res$E_Yd_Y),
     se_E_Yd_Y = sqrt(mean((combined_res$se_E_Yd_Y^2)))
   )
-
+  
   ci_df <- data.frame(
     lower_EY_Ad_dZ1 = average_results$EY_Ad_dZ1 - 1.96*average_results$se_EY_Ad_dZ1,
     upper_EY_Ad_dZ1 = average_results$EY_Ad_dZ1 + 1.96*average_results$se_EY_Ad_dZ1,
@@ -568,7 +623,7 @@ average_across_seeds <- function(results_list, threshold){
     lower_E_Yd_Y = average_results$E_Yd_Y - 1.96*average_results$se_E_Yd_Y,
     upper_E_Yd_Y = average_results$E_Yd_Y + 1.96*average_results$se_E_Yd_Y
   )
-
+  
   results_table <- data.frame(
     value = c(average_results$EY_Ad_dZ1,
               average_results$EY_A0_dZ1,
@@ -611,7 +666,7 @@ average_across_seeds <- function(results_list, threshold){
                  ci_df$upper_E_Y,
                  ci_df$upper_E_Yd_Y)
   )
-
+  
   row_names <- c("E[Y(1) | d(Z) = 1]",
                  "E[Y(0) | d(Z) = 1]",
                  "E[d(Z) = 1]",
@@ -622,60 +677,109 @@ average_across_seeds <- function(results_list, threshold){
                  "E[Y(d)]",
                  "E[Y]",
                  "E[Y(d) - Y]")
-
+  
   col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
-
+  
   rownames(results_table) <- row_names
   colnames(results_table) <- col_names
-
-  average_results_list <- list(results_table = results_table,
-                               Z_list = Z_list,
-                               n_seeds = n,
-                               threshold = threshold)
-
+  
+  average_results_list <- list(
+    results_table = results_table,
+    Z_list = Z_list,
+    n_seeds = n,
+    threshold = threshold,
+    missing_fields = missing_fields
+  )
+  
   class(average_results_list) <- "average_results"
-
+  
   return(average_results_list)
-
 }
 
 #' Print the output of a \code{"average_results"} object.
 #'
-#' @param x An \code{"otr_results"} or \code{"full_otr_results"} object.
+#' @param x An \code{"average_results"} object.
 #' @param ... Other arguments (not used)
 #'
 #' @method print average_results
 #' @export
 print.average_results <- function(x, ...){
+  
   Z_list <- x$Z_list
   n <- x$n_seeds
   results_table <- x$results_table
   threshold <- x$threshold
-
+  
+  # Backwards compatibility for older objects
+  new_rows <- c("E[Y(d)]", "E[Y]", "E[Y(d) - Y]")
+  new_fields <- c("E_Yd", "E_Y", "E_Yd_Y")
+  
+  # Rows absent from previously saved objects
+  missing_rows <- setdiff(new_rows, rownames(results_table))
+  
+  if(length(missing_rows) > 0){
+    missing_df <- as.data.frame(
+      matrix(NA_real_,
+             nrow = length(missing_rows),
+             ncol = ncol(results_table),
+             dimnames = list(missing_rows, colnames(results_table)))
+    )
+    
+    results_table <- rbind(results_table, missing_df)
+  }
+  
+  # Identify fields missing when averaging old seed objects
+  missing_fields <- x$missing_fields
+  
   row_names <- rownames(results_table)
   col_names <- colnames(results_table)
-
+  
   # Print header with dashed line
-  cat(paste("                                        Average results across n = ", n, " seeds for threshold ",threshold,"\n"))
+  cat(paste("                                        Average results across n = ",
+            n, " seeds for threshold ", threshold, "\n"))
   cat(paste(rep("-", 135), collapse = ""), "\n")
-  cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n", "", col_names[1], col_names[2], col_names[3], col_names[4]))
+  cat(sprintf("%-60s%-20s%-20s%-20s%-20s\n",
+              "", col_names[1], col_names[2], col_names[3], col_names[4]))
   cat(paste(rep("-", 135), collapse = ""), "\n")
-
+  
   for(i in 1:nrow(results_table)){
     row_to_print <- results_table[i, ]
-
-    # Adjust the widths as needed
+    
+    vals <- as.character(round(unlist(row_to_print, use.names = FALSE), 4))
+    
+    # Print "--" for absent fields, preserving genuine NA values
+    if(row_names[i] %in% new_rows){
+      
+      j <- match(row_names[i], new_rows)
+      field <- new_fields[j]
+      
+      # Entire row absent from previously saved object
+      if(row_names[i] %in% missing_rows){
+        vals[] <- "--"
+      } else {
+        
+        # Estimate absent from original seed objects
+        if(field %in% missing_fields){
+          vals[c(1, 3, 4)] <- "--"
+        }
+        
+        # Standard error absent from original seed objects
+        if(paste0("se_", field) %in% missing_fields){
+          vals[c(2, 3, 4)] <- "--"
+        }
+      }
+    }
+    
     formatted_row <- sprintf("%-60s%-20s%-20s%-20s%-20s\n",
-                             row.names(row_to_print),
-                             round(row_to_print[1],4),
-                             round(row_to_print[2],4),
-                             round(row_to_print[3],4),
-                             round(row_to_print[4],4))
-
-    # Print the formatted row
-    cat(paste(formatted_row))
+                             row_names[i],
+                             vals[1],
+                             vals[2],
+                             vals[3],
+                             vals[4])
+    
+    cat(formatted_row)
   }
-
-  cat(paste("\nCovariates used in decision rule: ", paste(Z_list, collapse = ", "), "\n\n"))
-
+  
+  cat(paste("\nCovariates used in decision rule: ",
+            paste(Z_list, collapse = ", "), "\n\n"))
 }
