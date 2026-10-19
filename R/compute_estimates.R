@@ -53,6 +53,10 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_inf_fn_matrix <- vector("list", length = k_folds)
     k_fold_subgroup_effect_dZ0 <- vector("list", length = k_folds)
     k_fold_compare_subgroup_effect <- vector("list", length = k_folds)
+    k_fold_E_Yd <- vector("list", length = k_folds )
+    k_fold_E_Y <- vector("list", length = k_folds )
+    k_fold_E_Yd_Y <- vector("list", length = k_folds)
+    
     k_fold_decisions <- data.frame()
 
     for(k in 1:k_folds){
@@ -83,6 +87,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_treatment_effect[[k]] <- compute_est_output$treatment_effect
       k_fold_subgroup_effect_dZ0[[k]] <- compute_est_output$subgroup_effect_dZ0
       k_fold_compare_subgroup_effect[[k]] <- compute_est_output$compare_subgroup_effect
+      k_fold_E_Yd[[k]] <- compute_est_output$E_Yd
+      k_fold_E_Y[[k]] <- compute_est_output$E_Y
+      k_fold_E_Yd_Y[[k]] <- compute_est_output$E_Yd_Y
       k_fold_inf_fn_matrix[[k]] <- compute_est_output$inf_fn_matrix
 
       kth_decision_df <- compute_est_output$df_decisions
@@ -103,6 +110,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     k_fold_subgroup_effect_dZ0 <- do.call(rbind, k_fold_subgroup_effect_dZ0)
     k_fold_treatment_effect <- do.call(rbind, k_fold_treatment_effect)
     k_fold_compare_subgroup_effect <- do.call(rbind, k_fold_compare_subgroup_effect)
+    k_fold_E_Yd <- do.call(rbind, k_fold_E_Yd)
+    k_fold_E_Y <- do.call(rbind, k_fold_E_Y)
+    k_fold_E_Yd_Y <- do.call(rbind, k_fold_E_Yd_Y)
 
     # If any folds contained NA, do not count in computing overall results (cases when a fold recommends treatment to everybody or nobody)
     k_non_na <- which(!(is.na(k_fold_subgroup_effect$var_subgroup_effect) | is.na(k_fold_EY_Ad_dZ1$var_aug)))
@@ -114,6 +124,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
     non_na_k_fold_subgroup_effect_dZ0 <- k_fold_subgroup_effect_dZ0[k_non_na,]
     non_na_k_fold_treatment_effect <- k_fold_treatment_effect[k_non_na,]
     non_na_k_fold_compare_subgroup_effect <- k_fold_compare_subgroup_effect[k_non_na,]
+    non_na_k_fold_E_Yd <- k_fold_E_Yd[k_non_na,]
+    non_na_k_fold_E_Y <- k_fold_E_Y[k_non_na,]
+    non_na_k_fold_E_Yd_Y <- k_fold_E_Yd_Y[k_non_na,]
 
     # get number of non-NA folds + observations in them
     k_folds_non_na <- length(k_non_na)
@@ -138,7 +151,13 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       treatment_effect = mean(non_na_k_fold_treatment_effect$treatment_effect),
       se_treatment_effect = sqrt((sum(non_na_k_fold_treatment_effect$var_treatment_effect) / k_folds_non_na) / num_obs),
       compare_subgroup_effect = mean(non_na_k_fold_compare_subgroup_effect$compare_subgroup_effect),
-      se_compare_subgroup_effect = sqrt((sum(non_na_k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds_non_na) / num_obs)
+      se_compare_subgroup_effect = sqrt((sum(non_na_k_fold_compare_subgroup_effect$var_compare_subgroup_effect) / k_folds_non_na) / num_obs),
+      E_Yd = mean(non_na_k_fold_E_Yd$E_Yd),
+      se_E_Yd = sqrt((sum(non_na_k_fold_E_Yd$var_E_Yd) / k_folds_non_na) / num_obs),
+      E_Y = mean(non_na_k_fold_E_Y$E_Y),
+      se_E_Y = sqrt((sum(non_na_k_fold_E_Y$var_E_Y) / k_folds_non_na) / num_obs),
+      E_Yd_Y = mean(non_na_k_fold_E_Yd_Y$E_Yd_Y),
+      se_E_Yd_Y = sqrt((sum(non_na_k_fold_E_Yd_Y$var_E_Yd_Y) / k_folds_non_na) / num_obs)
     )
 
     k_fold_results <- list(
@@ -149,6 +168,9 @@ compute_estimates <- function(df, Y_name, A_name, W_list, Z_list,
       k_fold_subgroup_effect_dZ0 = k_fold_subgroup_effect_dZ0,
       k_fold_treatment_effect = k_fold_treatment_effect,
       k_fold_compare_subgroup_effect = k_fold_compare_subgroup_effect,
+      k_fold_E_Yd = k_fold_E_Yd,
+      k_fold_E_Y = k_fold_E_Y,
+      k_fold_E_Yd_Y = k_fold_E_Yd_Y,
       influence_fns = k_fold_inf_fn_matrix
     )
 
@@ -307,6 +329,14 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
                           missingness_model = missingness_model,
                           ps_trunc_level = ps_trunc_level,
                           idx_sub = idx_sub0)
+  
+  # E[Y(d)]
+  E_Yd <- aiptw_a_1[['aiptw']] * mean_dZ + aiptw_a_0[['aiptw']] * (1 - mean_dZ)
+  
+  # E[Y] (not directly observed bc missingness)
+  E_Y_aiptw <- calc_aiptw_E_Y(A, A_name, W, Y, I_Y, outcome_model, missingness_model)
+  E_Y <- E_Y_aiptw[['aiptw']]
+  var_E_Y <- stats::var(E_Y_aiptw[['augmentation']])
 
   # E[Y(d) - Y(0)] = E[Y(d) | d(Z) = 1]*P(d(Z) = 1) - E[Y(0) | d(Z) = 1 ]*P(d(Z) = 1)
   treatment_effect <- (aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']]) * mean_dZ
@@ -368,14 +398,28 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   ) , ncol = 1)
 
   var_treatment_effect <- t(gradient_g) %*% cov_matrix %*% gradient_g
+  
+  # Effect E_Yd
+  gradient_E_Yd <- matrix(c(
+    mean_dZ, 1 - mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']], 0, 0, 0
+  ) , ncol = 1)
+  
+  var_E_Yd <- t(gradient_E_Yd) %*% cov_matrix %*% gradient_E_Yd
 
   # add columns for the influence functions of subgroup_effect and treatment_effect
   inf_fn_subgroup_effect <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup)
   inf_fn_subgroup_effect_dZ0 <- as.numeric(inf_fn_matrix %*% gradient_g_subgroup_dZ0)
   inf_fn_compare_subgroup <- as.numeric(inf_fn_matrix %*% gradient_compare_subgroup)
   inf_fn_treatment_effect <- as.numeric(inf_fn_matrix %*% gradient_g)
-  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect)
+  inf_fn_E_Yd <- as.numeric(inf_fn_matrix %*% gradient_E_Yd)
+  inf_fn_matrix <- cbind(inf_fn_matrix, inf_fn_subgroup_effect, inf_fn_subgroup_effect_dZ0, inf_fn_treatment_effect, inf_fn_E_Yd, E_Y_aiptw[['augmentation']])
 
+  # E[Y(d) - Y]
+  E_Yd_Y <- E_Yd - E_Y
+  gradient_E_Yd_Y <- matrix(c(0,0,0,0,0,0,0,0,0,1,-1), ncol = 1)
+  
+  var_E_Yd_Y <- t(gradient_E_Yd_Y) %*% cov(inf_fn_matrix) %*% gradient_E_Yd_Y
+  
   # return  (1) dataframe with E[Y(1) | d(Z) = 1] -- estimated treatment effect among optimally treated
   #         (2) dataframe with E[Y(0) | d(Z) = 1] -- estimated outcome if not treated among those who should be treated by decision rule
   #         (3) dataframe with E[d(Z) = 1] -- estimated proportion treated under optimal treatment rule
@@ -394,6 +438,9 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
               treatment_effect = data.frame(treatment_effect = treatment_effect, var_treatment_effect = var_treatment_effect),
               subgroup_effect_dZ0 = data.frame(subgroup_effect_dZ0 = subgroup_effect_dZ0, var_subgroup_effect_dZ0 = var_subgroup_effect_dZ0),
               compare_subgroup_effect = data.frame(compare_subgroup_effect = compare_subgroup_effect, var_compare_subgroup_effect = var_compare_subgroup),
+              E_Yd = data.frame(E_Yd = E_Yd, var_E_Yd = var_E_Yd),
+              E_Y = data.frame(E_Y = E_Y, var_E_Y = var_E_Y),
+              E_Yd_Y = data.frame(E_Yd_Y = E_Yd_Y, var_E_Yd_Y = var_E_Yd_Y),
               inf_fn_matrix = inf_fn_matrix,
               df_decisions = df_decisions))
 }
@@ -469,6 +516,66 @@ calc_aiptw <- function(a, A, A_name, W, Y, I_Y,
 
   return(list(
     a = a,
+    aiptw = aiptw,
+    plug_in_est = plug_in_est,
+    augmentation = augmentation,
+    var_aug = var_aug
+  ))
+}
+
+#' Function to calculate AIPTW for E_Y
+#'
+#' @param A vector of observed treatments
+#' @param A_name name of treatment variable
+#' @param W dataframe of covariates
+#' @param Y vector of observed outcome variable
+#' @param I_Y indicator that Y is missing (I_Y = 1 if missing, I_Y = 0 if observed)
+#' @param outcome_model outcome Nuisance model
+#' @param missingness_model missingness Nuisance model
+#'
+#' @export
+#'
+#' @returns
+#' \describe{
+#'         (2) aiptw - vector aiptw estimators
+#'         (3) plug_in_est - vector of plug-in estimators
+#'         (4) augmentation - vector of augmentation terms
+#'         (5) var_aug - variance of augmentation term
+#'         }
+calc_aiptw_E_Y <- function(A, A_name, W, Y, I_Y,
+                           outcome_model, missingness_model){
+  
+  # predicting under observed treatment
+  miss_pred_output_df <- data.frame(A, W)
+  names(miss_pred_output_df)[1] <- A_name
+  
+  miss_pred_output <- stats::predict(missingness_model, miss_pred_output_df, type = 'response')
+  miss_pred <- 1 - miss_pred_output$pred # proportion of non-missing observations
+  
+  # predict outcome model observed missingness
+  om_trtA_df <- data.frame(A, W)
+  names(om_trtA_df)[1] <- A_name
+  om_trtA <- stats::predict(outcome_model, om_trtA_df, type = 'response')
+  
+  ### Step 6: "compute plug-in estimate"
+  plug_in_est <- mean(om_trtA$pred)
+  
+  ### Step 7: compute augmentation term
+  I_notMiss <- ifelse(I_Y == 0, 1, 0)
+  denom <- miss_pred 
+  Y_minus_om_trtA <- Y - om_trtA$pred
+  Y_minus_om_trtA <- ifelse(is.na(Y_minus_om_trtA), 0, Y_minus_om_trtA) # will get 0'd out by indicator, avoid error
+  om_trtA_minus_plugin <- om_trtA$pred - plug_in_est
+  
+  augmentation <- (I_notMiss / denom * Y_minus_om_trtA) + om_trtA_minus_plugin
+  
+  ### Step 8: compute aiptw estimate = plug-in estimate from 6 + mean(augmentation term from step 7)
+  aiptw <- plug_in_est + mean(augmentation)
+  
+  ### Step 9: compute variance of augmentation (used for standard error at end)
+  var_aug <- as.numeric(stats::var(augmentation))
+  
+  return(list(
     aiptw = aiptw,
     plug_in_est = plug_in_est,
     augmentation = augmentation,

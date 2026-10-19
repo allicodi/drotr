@@ -132,28 +132,40 @@ print.full_otr_results <- function(x, ...){
         sub$aggregated_results$subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect),
+        sub$aggregated_results$compare_subgroup_effect,
+        sub$aggregated_results$E_Yd, 
+        sub$aggregated_results$E_Y,
+        sub$aggregated_results$E_Yd_Y),
       c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$se_compare_subgroup_effect),
+        sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$se_E_Y,
+        sub$aggregated_results$se_E_Yd_Y),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect),
+        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$E_Yd - 1.96*sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$E_Y - 1.96*sub$aggregated_results$se_E_Y, 
+        sub$aggregated_results$E_Yd_Y- 1.96*sub$aggregated_results$se_E_Yd_Y),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect)
+        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$E_Yd + 1.96*sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$E_Y + 1.96*sub$aggregated_results$se_E_Y, 
+        sub$aggregated_results$E_Yd_Y + 1.96*sub$aggregated_results$se_E_Yd_Y)
     )
 
     row_names <- c("E[Y(1) | d(Z) = 1]",
@@ -162,7 +174,10 @@ print.full_otr_results <- function(x, ...){
                    "E[Y(1) - Y(0) | d(Z) = 1]",
                    "E[Y(1) - Y(0) | d(Z) = 0]",
                    "E[Y(d) - Y(0)]",
-                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]")
+                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]",
+                   "E[Y(d)]",
+                   "E[Y]",
+                   "E[Y(d) - Y]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -223,37 +238,52 @@ print.otr_results <- function(x, ...){
         sub$aggregated_results$subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect),
+        sub$aggregated_results$compare_subgroup_effect,
+        sub$aggregated_results$E_Yd, 
+        sub$aggregated_results$E_Y,
+        sub$aggregated_results$E_Yd_Y),
       c(sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$se_compare_subgroup_effect),
+        sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$se_E_Y,
+        sub$aggregated_results$se_E_Yd_Y),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 - 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 - 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect - 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 - 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect - 1.96*sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect),
+        sub$aggregated_results$compare_subgroup_effect - 1.96*sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$E_Yd - 1.96*sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$E_Y - 1.96*sub$aggregated_results$se_E_Y, 
+        sub$aggregated_results$E_Yd_Y- 1.96*sub$aggregated_results$se_E_Yd_Y),
       c(sub$aggregated_results$aiptw_EY_Ad_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_Ad_dZ1,
         sub$aggregated_results$aiptw_EY_A0_dZ1 + 1.96*sub$aggregated_results$se_aiptw_EY_A0_dZ1,
         sub$aggregated_results$E_dZ1 + 1.96*sub$aggregated_results$se_E_dZ1,
         sub$aggregated_results$subgroup_effect + 1.96*sub$aggregated_results$se_subgroup_effect,
         sub$aggregated_results$subgroup_effect_dZ0 + 1.96*sub$aggregated_results$se_subgroup_effect_dZ0,
         sub$aggregated_results$treatment_effect + 1.96*sub$aggregated_results$se_treatment_effect,
-        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect)
+        sub$aggregated_results$compare_subgroup_effect + 1.96*sub$aggregated_results$se_compare_subgroup_effect,
+        sub$aggregated_results$E_Yd + 1.96*sub$aggregated_results$se_E_Yd, 
+        sub$aggregated_results$E_Y + 1.96*sub$aggregated_results$se_E_Y, 
+        sub$aggregated_results$E_Yd_Y + 1.96*sub$aggregated_results$se_E_Yd_Y)
     )
-
+    
     row_names <- c("E[Y(1) | d(Z) = 1]",
                    "E[Y(0) | d(Z) = 1]",
                    "E[d(Z) = 1]",
                    "E[Y(1) - Y(0) | d(Z) = 1]",
                    "E[Y(1) - Y(0) | d(Z) = 0]",
                    "E[Y(d) - Y(0)]",
-                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]")
+                   "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]",
+                   "E[Y(d)]",
+                   "E[Y]",
+                   "E[Y(d) - Y]")
 
     col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
@@ -361,26 +391,26 @@ compare.otr_results <- function(res_rule1, res_rule2, threshold, rule1_comp, rul
   # Updated for subgroup effect in untreated
   if(rule1_comp == "treatment effect" | rule1_comp == "te"){
     aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$treatment_effect
-    gradient_1 <- c(0, 0, 0, 0, 0, 0, 0, 0, 1)
+    gradient_1 <- c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)
   } else if(rule1_comp == "subgroup effect" | rule1_comp == "se"){
     aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$subgroup_effect
-    gradient_1 <- c(0, 0, 0, 0, 0, 0, 1, 0, 0)
+    gradient_1 <- c(0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0)
   } else if(rule1_comp == "subgroup effect untreated" | rule1_comp == "se_dZ0"){
     aiptw_1 <- res_rule1$results[[t_name]]$aggregated_results$subgroup_effect_dZ0
-    gradient_1 <- c(0, 0, 0, 0, 0, 0, 0, 1, 0)
+    gradient_1 <- c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0)
   } else{
     stop(print("Must enter treatment effect, te, subgroup effect, or se"))
   }
 
   if(rule2_comp == "treatment effect" | rule2_comp == "te"){
     aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$treatment_effect
-    gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, 0, -1)
+    gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0)
   } else if(rule2_comp == "subgroup effect" | rule2_comp == "se"){
     aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$subgroup_effect
-    gradient_2 <- c(0, 0, 0, 0, 0, 0, -1, 0, 0)
+    gradient_2 <- c(0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0)
   } else if(rule2_comp == "subgroup effect untreated" | rule2_comp == "se_dZ0"){
     aiptw_2 <- res_rule2$results[[t_name]]$aggregated_results$subgroup_effect_dZ0
-    gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, -1, 0)
+    gradient_2 <- c(0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0)
   } else {
     stop(print("Must enter treatment effect, te; subgroup effect, se; or subgroup effect untreated, se_dZ0"))
   }
@@ -507,7 +537,13 @@ average_across_seeds <- function(results_list, threshold){
     treatment_effect = mean(combined_res$treatment_effect),
     se_treatment_effect = sqrt(mean((combined_res$se_treatment_effect^2))),
     compare_subgroup_effect = mean(combined_res$compare_subgroup_effect),
-    se_compare_subgroup_effect = sqrt(mean((combined_res$se_compare_subgroup_effect^2)))
+    se_compare_subgroup_effect = sqrt(mean((combined_res$se_compare_subgroup_effect^2))),
+    E_Yd = mean(combined_res$E_Yd),
+    se_E_Yd = sqrt(mean((combined_res$se_E_Yd^2))),
+    E_Y = mean(combined_res$E_Y),
+    se_E_Y = sqrt(mean((combined_res$se_E_Y^2))),
+    E_Yd_Y = mean(combined_res$E_Yd_Y),
+    se_E_Yd_Y = sqrt(mean((combined_res$se_E_Yd_Y^2)))
   )
 
   ci_df <- data.frame(
@@ -524,7 +560,13 @@ average_across_seeds <- function(results_list, threshold){
     lower_treatment_effect = average_results$treatment_effect - 1.96*average_results$se_treatment_effect,
     upper_treatment_effect = average_results$treatment_effect + 1.96*average_results$se_treatment_effect,
     lower_compare_subgroup_effect = average_results$compare_subgroup_effect - 1.96*average_results$se_compare_subgroup_effect,
-    upper_compare_subgroup_effect = average_results$compare_subgroup_effect + 1.96*average_results$se_compare_subgroup_effect
+    upper_compare_subgroup_effect = average_results$compare_subgroup_effect + 1.96*average_results$se_compare_subgroup_effect,
+    lower_E_Yd = average_results$E_Yd - 1.96*average_results$se_E_Yd,
+    upper_E_Yd = average_results$E_Yd + 1.96*average_results$se_E_Yd,
+    lower_E_Y = average_results$E_Y - 1.96*average_results$se_E_Y,
+    upper_E_Y = average_results$E_Y + 1.96*average_results$se_E_Y,
+    lower_E_Yd_Y = average_results$E_Yd_Y - 1.96*average_results$se_E_Yd_Y,
+    upper_E_Yd_Y = average_results$E_Yd_Y + 1.96*average_results$se_E_Yd_Y
   )
 
   results_table <- data.frame(
@@ -534,28 +576,40 @@ average_across_seeds <- function(results_list, threshold){
               average_results$subgroup_effect,
               average_results$subgroup_effect_dZ0,
               average_results$treatment_effect,
-              average_results$compare_subgroup_effect),
+              average_results$compare_subgroup_effect,
+              average_results$E_Yd,
+              average_results$E_Y,
+              average_results$E_Yd_Y),
     se = c(average_results$se_EY_Ad_dZ1,
            average_results$se_EY_A0_dZ1,
            average_results$se_E_dZ1,
            average_results$se_subgroup_effect,
            average_results$se_subgroup_effect_dZ0,
            average_results$se_treatment_effect,
-           average_results$se_compare_subgroup_effect),
+           average_results$se_compare_subgroup_effect,
+           average_results$se_E_Yd,
+           average_results$se_E_Y,
+           average_results$se_E_Yd_Y),
     lower_ci = c(ci_df$lower_EY_Ad_dZ1,
                  ci_df$lower_EY_A0_dZ1,
                  ci_df$lower_EY_E_dZ1,
                  ci_df$lower_subgroup_effect,
                  ci_df$lower_subgroup_effect_dZ0,
                  ci_df$lower_treatment_effect,
-                 ci_df$lower_compare_subgroup_effect),
+                 ci_df$lower_compare_subgroup_effect,
+                 ci_df$lower_E_Yd,
+                 ci_df$lower_E_Y,
+                 ci_df$lower_E_Yd_Y),
     upper_ci = c(ci_df$upper_EY_Ad_dZ1,
                  ci_df$upper_EY_A0_dZ1,
                  ci_df$upper_EY_E_dZ1,
                  ci_df$upper_subgroup_effect,
                  ci_df$upper_subgroup_effect_dZ0,
                  ci_df$upper_treatment_effect,
-                 ci_df$upper_compare_subgroup_effect)
+                 ci_df$upper_compare_subgroup_effect,
+                 ci_df$upper_E_Yd,
+                 ci_df$upper_E_Y,
+                 ci_df$upper_E_Yd_Y)
   )
 
   row_names <- c("E[Y(1) | d(Z) = 1]",
@@ -564,7 +618,10 @@ average_across_seeds <- function(results_list, threshold){
                  "E[Y(1) - Y(0) | d(Z) = 1]",
                  "E[Y(1) - Y(0) | d(Z) = 0]",
                  "E[Y(d) - Y(0)]",
-                 "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]")
+                 "E[Y(1) - Y(0) | d(Z) = 1] - E[Y(1) - Y(0) | d(Z) = 0]",
+                 "E[Y(d)]",
+                 "E[Y]",
+                 "E[Y(d) - Y]")
 
   col_names <- c("Estimate", "Standard Error", "95% CI: Lower", "95% CI: Upper")
 
