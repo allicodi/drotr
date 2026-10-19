@@ -331,7 +331,7 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
                           idx_sub = idx_sub0)
   
   # E[Y(d)]
-  E_Yd <- aiptw_a_1[['aiptw']] * mean_dZ + aiptw_a_0[['aiptw']] * (1 - mean_dZ)
+  E_Yd <- aiptw_a_1[['aiptw']] * mean_dZ + aiptw_a_0_dZ0[['aiptw']] * (1 - mean_dZ)
   
   # E[Y] (not directly observed bc missingness)
   E_Y_aiptw <- calc_aiptw_E_Y(A, A_name, W, Y, I_Y, outcome_model, missingness_model)
@@ -401,7 +401,7 @@ compute_estimate_k <- function(df, Y_name, A_name, W_list, Z_list,
   
   # Effect E_Yd
   gradient_E_Yd <- matrix(c(
-    mean_dZ, 1 - mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']], 0, 0, 0
+    mean_dZ, 0, aiptw_a_1[['aiptw']] - aiptw_a_0_dZ0[['aiptw']], 0, 1 - mean_dZ, 0
   ) , ncol = 1)
   
   var_E_Yd <- t(gradient_E_Yd) %*% cov_matrix %*% gradient_E_Yd

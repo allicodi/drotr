@@ -226,6 +226,8 @@ compute_estimates_external <- function(df,
   # List to hold results at each threshold
   results_list_threshold <- vector("list", length = length(threshold))
   
+  d_pred_input <- d_pred
+  
   for(t_idx in 1:length(threshold)){
     
     # Extract sign of threshold indicating positive or negative outcome, make threshold numeric
@@ -239,13 +241,15 @@ compute_estimates_external <- function(df,
     t <- as.numeric(t)
     
     # If d_pred not passed in (could pass in treatment decisions to get effects for given assignment)
-    if(is.null(d_pred)){
+    if(is.null(d_pred_input)){
       # Get treatment decision for avg_CATE
       if(sign == "-"){
         d_pred <- ifelse(CATE_preds$avg_CATE < t, 1, 0)
       } else {
         d_pred <- ifelse(CATE_preds$avg_CATE > t, 1, 0)
       }
+    } else{
+      d_pred <- d_pred_input
     }
   
     # Get treatment decisions & effect estimates for given nuisance model
@@ -479,7 +483,7 @@ aiptw_tes <- function(df,
                               idx_sub = idx_sub0)
   
   # E[Y(d)]
-  E_Yd <- aiptw_a_1[['aiptw']] * mean_dZ + aiptw_a_0[['aiptw']] * (1 - mean_dZ)
+  E_Yd <- aiptw_a_1[['aiptw']] * mean_dZ + aiptw_a_0_dZ0[['aiptw']] * (1 - mean_dZ)
   
   # E[Y] (not directly observed bc missingness)
   E_Y_aiptw <- calc_aiptw_E_Y(A, A_name, W, Y, I_Y, outcome_model, missingness_model)
@@ -545,7 +549,7 @@ aiptw_tes <- function(df,
   
   # Effect E_Yd
   gradient_E_Yd <- matrix(c(
-    mean_dZ, 1 - mean_dZ, aiptw_a_1[['aiptw']] - aiptw_a_0[['aiptw']], 0, 0, 0
+    mean_dZ, 0, aiptw_a_1[['aiptw']] - aiptw_a_0_dZ0[['aiptw']], 0, 1 - mean_dZ, 0
   ) , ncol = 1)
   
   var_E_Yd <- t(gradient_E_Yd) %*% cov_matrix %*% gradient_E_Yd
